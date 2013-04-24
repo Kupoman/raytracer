@@ -247,7 +247,7 @@ int main(int argc, char **argv)
 	glutDisplayFunc(draw);
 	glutCloseFunc(exit);
 	
-	loadFile("test", &scene);
+	loadFile("cube.dae", &scene);
 
 	glewInit();
 	glinit();

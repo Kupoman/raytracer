@@ -3,11 +3,32 @@
 
 #include <assimp/Importer.hpp> // C++ importer interface
 #include <assimp/scene.h> // Output data structure
+#include <assimp/mesh.h>
 #include <assimp/postprocess.h> // Post processing flags
  
  
 #include "loader.h"
- 
+static void _traverseNodes(aiNode* node, Scene* scene)
+{
+	fprintf(stderr, "%d, %d\n", node->mNumMeshes, node->mNumChildren);
+	if (node->mNumMeshes) {
+		Mesh *mesh = new Mesh;
+		mesh->position = Eigen::Vector3f(node->mTransformation.a4,
+												   node->mTransformation.b4,
+												   node->mTransformation.c4);
+		scene->meshes.push_back(mesh);
+	}
+
+	for (int i = 0; i < node->mNumChildren; ++i) {
+		_traverseNodes(node->mChildren[i], scene);
+	}
+}
+
+static void _mergeScene(const aiScene* ascene, Scene* scene)
+{
+	_traverseNodes(ascene->mRootNode, scene);
+}
+
 bool loadFile(const std::string filename, Scene* scene)
 {
 	// Create an instance of the Importer class
@@ -21,13 +42,13 @@ bool loadFile(const std::string filename, Scene* scene)
 											aiProcess_JoinIdenticalVertices |
 											aiProcess_SortByPType);
 	// If the import failed, report it
-	if( !scene)
+	if( !ascene)
 	{
 		fprintf(stderr, "%s\n", importer.GetErrorString());
 		return false;
 	}
 	// Now we can access the file's contents.
-	//DoTheSceneProcessing( scene);
+	_mergeScene(ascene, scene);
 	// We're done. Everything will be cleaned up by the importer destructor
 	return true;
 }

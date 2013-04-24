@@ -23,11 +23,17 @@ typedef struct {
 
 typedef struct {
 	Eigen::Vector3f position;
+	float radius;
 	Material *material;
 } Mesh;
 
-typedef struct {
-	std::vector<Light> lights;
-} Scene;
+class Scene {
+public:
+	std::vector<Light*> lights;
+	std::vector<Mesh*> meshes;
+
+	~Scene();
+
+};
 
 #endif
