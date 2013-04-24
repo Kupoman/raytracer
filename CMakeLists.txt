@@ -1,0 +1,51 @@
+cmake_minimum_required(VERSION 2.8)
+# Project Name
+PROJECT(CSCD599)
+
+SET(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_MODULE_PATH})
+#SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+
+#########################################################
+# FIND GLUT
+#########################################################
+find_package(GLUT REQUIRED)
+include_directories(${GLUT_INCLUDE_DIRS})
+link_directories(${GLUT_LIBRARY_DIRS})
+add_definitions(${GLUT_DEFINITIONS})
+if(NOT GLUT_FOUND)
+    message(ERROR " GLUT not found!")
+endif(NOT GLUT_FOUND)
+#########################################################
+# FIND OPENGL
+#########################################################
+find_package(OpenGL REQUIRED)
+include_directories(${OpenGL_INCLUDE_DIRS})
+link_directories(${OpenGL_LIBRARY_DIRS})
+add_definitions(${OpenGL_DEFINITIONS})
+if(NOT OPENGL_FOUND)
+    message(ERROR " OPENGL not found!")
+endif(NOT OPENGL_FOUND)
+#########################################################
+# FIND GLEW
+#########################################################
+find_package(GLEW REQUIRED)
+include_directories(${GLEW_INCLUDE_DIRS})
+link_directories(${GLEW_LIBRARY_DIRS})
+add_definitions(${GLEW_DEFINITIONS})
+if(NOT GLEW_FOUND)
+    message(ERROR " GLEW not found!")
+endif(NOT GLEW_FOUND)
+#########################################################
+# Include Files
+#########################################################
+include_directories(${PROJECT_SOURCE_DIR} ${PROJECT_SOURCE_DIR}/externs)
+add_executable(cscd599 main.cpp)
+
+########################################################
+# Linking & stuff
+#########################################################
+ADD_SUBDIRECTORY(data)
+ADD_SUBDIRECTORY(raytracer)
+target_link_libraries(cscd599 raytracer data ${GLEW_LIBRARIES} ${OPENGL_LIBRARIES} ${GLUT_LIBRARY})
+
+
