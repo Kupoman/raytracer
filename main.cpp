@@ -26,7 +26,7 @@ const unsigned int point_count = WINDOW_WIDTH*WINDOW_HEIGHT;
 
 Scene scene = Scene();
 
-Camera camera = Camera(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
+Camera camera = Camera(.86, WINDOW_WIDTH, WINDOW_HEIGHT);
 AccelSpheres spheres;
 
 GLuint vertex_buffer;

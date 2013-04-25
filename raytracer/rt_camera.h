@@ -6,11 +6,11 @@
 class Camera
 {
 private:
-	float fovx, fovy;
+	float fov;
 	int width, height;
 	class Ray* rays;
 public:
-	Camera(float fovx, float fovy, int width, int height);
+	Camera(float fov, int width, int height);
 	~Camera();
 	class Ray* getScreenRays();
 };
