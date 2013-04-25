@@ -1,5 +1,5 @@
-#ifndef RT_RESULT__
-#define RT_RESULT__
+#ifndef __DATA_H__
+#define __DATA_H__
 
 #include "Eigen/Dense"
 #include <vector>
@@ -26,14 +26,5 @@ typedef struct {
 	float radius;
 	Material *material;
 } Mesh;
-
-class Scene {
-public:
-	std::vector<Light*> lights;
-	std::vector<Mesh*> meshes;
-
-	~Scene();
-
-};
 
 #endif

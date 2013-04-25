@@ -13,6 +13,7 @@
 #include "raytracer/rt_accel_spheres.h"
 
 #include "data/data.h"
+#include "data/scene.h"
 #include "data/loader.h"
 
 
@@ -23,7 +24,7 @@ const int WINDOW_HEIGHT = 480;
 
 const unsigned int point_count = WINDOW_WIDTH*WINDOW_HEIGHT;
 
-Scene scene;
+Scene scene = Scene();
 
 Camera camera = Camera(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
 AccelSpheres spheres;
@@ -161,7 +162,7 @@ void shade(Ray *ray, Result* result, Eigen::Vector3f *color, int pass)
 
 		/* Shadow */
 		Ray light_ray = Ray(V, L);
-		spheres.intersect(&light_ray, result);
+		scene.mesh_structure->intersect(&light_ray, result);
 		if (result->hit) {
 			float distance = (result->position - V).norm();
 			if (distance < L.norm()) {
@@ -173,7 +174,7 @@ void shade(Ray *ray, Result* result, Eigen::Vector3f *color, int pass)
 		/* Reflection */
 		float ref = 0.33;
 		Eigen::Vector3f ref_color = Eigen::Vector3f(0, 0, 0);
-		spheres.intersect(&ref_ray, result);
+		scene.mesh_structure->intersect(&ref_ray, result);
 		if (result->hit)
 			shade(&ref_ray, result, &ref_color, pass+1);
 
@@ -199,7 +200,7 @@ void draw(void)
 	Ray reflection;
 	int c=0;
 	for (int i = 0; i < WINDOW_WIDTH*WINDOW_HEIGHT; i++) {
-		spheres.intersect(&screenRays[i], &hitResult);
+		scene.mesh_structure->intersect(&screenRays[i], &hitResult);
 		if (hitResult.hit) {
 			shade(&screenRays[i], &hitResult, &result, 0);
 			points.color[c++] = (unsigned char)(std::min((int)result(0), 255));

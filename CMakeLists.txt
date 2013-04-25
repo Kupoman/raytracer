@@ -46,6 +46,6 @@ add_executable(cscd599 main.cpp)
 #########################################################
 ADD_SUBDIRECTORY(data)
 ADD_SUBDIRECTORY(raytracer)
-target_link_libraries(cscd599 raytracer data ${GLEW_LIBRARIES} ${OPENGL_LIBRARIES} ${GLUT_LIBRARY})
+target_link_libraries(cscd599 data raytracer ${GLEW_LIBRARIES} ${OPENGL_LIBRARIES} ${GLUT_LIBRARY})
 
 

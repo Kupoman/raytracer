@@ -8,6 +8,9 @@
  
  
 #include "loader.h"
+#include "scene.h"
+#include "data.h"
+
 static void _traverseNodes(aiNode* node, Scene* scene)
 {
 	fprintf(stderr, "%d, %d\n", node->mNumMeshes, node->mNumChildren);
@@ -16,7 +19,7 @@ static void _traverseNodes(aiNode* node, Scene* scene)
 		mesh->position = Eigen::Vector3f(node->mTransformation.a4,
 												   node->mTransformation.b4,
 												   node->mTransformation.c4);
-		scene->meshes.push_back(mesh);
+		scene->addMesh(mesh);
 	}
 
 	for (int i = 0; i < node->mNumChildren; ++i) {

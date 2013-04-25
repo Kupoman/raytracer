@@ -11,13 +11,14 @@ typedef struct {
 	Material *material;
 } Sphere;
 
-class AccelSpheres : IAccel
+class AccelSpheres : public IAccel
 {
 	class std::vector<Sphere*> spheres;
-	Material material;
 public:
 	AccelSpheres();
 	void addSphere(float posX, float posY, float posZ, float radius);
+	virtual void addMesh(Mesh* mesh);
+	virtual void update();
 	virtual bool occlude(class Ray ray);
 	virtual void intersect(class Ray* ray, Result* result);
 };

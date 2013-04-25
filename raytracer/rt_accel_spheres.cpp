@@ -1,6 +1,5 @@
 #include "rt_accel_spheres.h"
 #include "rt_ray.h"
-#include "data/data.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -9,7 +8,6 @@
 
 AccelSpheres::AccelSpheres()
 {
-	this->material.color = Eigen::Vector3f(255, 0, 0);
 	srand(420);//time(NULL));
 }
 
@@ -25,6 +23,16 @@ void AccelSpheres::addSphere(float posX, float posY, float posZ, float radius)
 	//s->material->color = Eigen::Vector3f(255, 0, 0);
 	s->material->color = Eigen::Vector3f(rand()%256, rand()%256, rand()%256);
 	this->spheres.push_back(s);
+}
+void AccelSpheres::addMesh(Mesh* mesh)
+{
+	Eigen::Vector3f pos = mesh->position;
+	this->addSphere(pos(0), pos(1), pos(2), 1);
+}
+
+void AccelSpheres::update()
+{
+
 }
 
 bool AccelSpheres::occlude(Ray ray)
