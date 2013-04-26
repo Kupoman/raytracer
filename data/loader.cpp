@@ -6,14 +6,14 @@
 #include <assimp/mesh.h>
 #include <assimp/postprocess.h> // Post processing flags
  
- 
+#include "camera.h"
 #include "loader.h"
 #include "scene.h"
 #include "data.h"
 
 static void _traverseNodes(aiNode* node, Scene* scene)
 {
-	fprintf(stderr, "%d, %d\n", node->mNumMeshes, node->mNumChildren);
+//	fprintf(stderr, "%s\n", node->mName.C_Str());
 	if (node->mNumMeshes) {
 		Mesh *mesh = new Mesh;
 		mesh->position = Eigen::Vector3f(node->mTransformation.a4,
@@ -30,6 +30,11 @@ static void _traverseNodes(aiNode* node, Scene* scene)
 static void _mergeScene(const aiScene* ascene, Scene* scene)
 {
 	_traverseNodes(ascene->mRootNode, scene);
+
+	if (ascene->HasCameras()) {
+		aiCamera* acamera = ascene->mCameras[0];
+		scene->camera->setFOV(acamera->mHorizontalFOV);
+	}
 }
 
 bool loadFile(const std::string filename, Scene* scene)

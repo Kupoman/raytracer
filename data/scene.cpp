@@ -1,4 +1,5 @@
 #include "scene.h"
+#include "camera.h"
 #include <stdio.h>
 
 #include "raytracer/rt_accel_spheres.h"
@@ -6,18 +7,17 @@
 Scene::Scene()
 {
 	this->mesh_structure = new AccelSpheres();
+	this->camera = new Camera(0.86, 480, 480);
 }
 
 Scene::~Scene()
 {
-//	fprintf(stderr, "Destroying scene %d\n", this->meshes.size());
 	for(int i = 0; i < this->meshes.size(); ++i) {
-//		fprintf(stderr, "%.2f, %.2f, %.2f\n", this->meshes[i]->position(0),
-//				this->meshes[i]->position(1),this->meshes[i]->position(2));
 		delete this->meshes[i];
 	}
 
 	delete this->mesh_structure;
+	delete this->camera;
 }
 
 void Scene::addMesh(Mesh *mesh)

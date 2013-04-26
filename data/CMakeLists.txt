@@ -15,8 +15,14 @@ SET(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_MODULE_PATH})
 INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR})
 
 ADD_LIBRARY(data STATIC
-			scene.cpp
+			camera.h
+			data.h
+			loader.h
+			scene.h
+			
+			camera.cpp
 			data.cpp
-			loader.cpp)
+			loader.cpp
+			scene.cpp)
 
 target_link_libraries(data ${ASSIMP_LIBRARIES})

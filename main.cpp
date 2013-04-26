@@ -9,9 +9,9 @@
 
 #include "Eigen/Dense"
 #include "raytracer/rt_ray.h"
-#include "raytracer/rt_camera.h"
 #include "raytracer/rt_accel_spheres.h"
 
+#include "data/camera.h"
 #include "data/data.h"
 #include "data/scene.h"
 #include "data/loader.h"
@@ -19,15 +19,12 @@
 
 typedef Eigen::Matrix<unsigned char, 3, 1> EigenColor3;
 
-const int WINDOW_WIDTH = 480;
-const int WINDOW_HEIGHT = 480;
+const int WINDOW_WIDTH = 640;
+const int WINDOW_HEIGHT = 640;
 
 const unsigned int point_count = WINDOW_WIDTH*WINDOW_HEIGHT;
 
 Scene scene = Scene();
-
-Camera camera = Camera(.86, WINDOW_WIDTH, WINDOW_HEIGHT);
-AccelSpheres spheres;
 
 GLuint vertex_buffer;
 struct Points {
@@ -130,11 +127,6 @@ void glinit(void)
 	glUseProgram(shader_program);
 
 	glViewport(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
-
-	spheres.addSphere(-2, -1, -10, 2);
-	spheres.addSphere(-3, 0, -7.5, 2);
-	spheres.addSphere(3, 0, -7.5, 2);
-	spheres.addSphere(-1, 0, 5, .5);
 }
 
 void glexit(void)
@@ -192,12 +184,10 @@ void draw(void)
 	clock_t t = clock();
 	glClearColor(0.3f,0.3f,0.3f,1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
-	Eigen::Vector3f result, light, reflected_vec;
+	Eigen::Vector3f result;
 	Result hitResult;
-	float lambert;
 
-	Ray* screenRays = camera.getScreenRays();
-	Ray reflection;
+	Ray* screenRays = scene.camera->getScreenRays();
 	int c=0;
 	for (int i = 0; i < WINDOW_WIDTH*WINDOW_HEIGHT; i++) {
 		scene.mesh_structure->intersect(&screenRays[i], &hitResult);
@@ -249,6 +239,8 @@ int main(int argc, char **argv)
 	glutCloseFunc(exit);
 	
 	loadFile("cube.dae", &scene);
+	scene.camera->setHeight(WINDOW_HEIGHT);
+	scene.camera->setWidth(WINDOW_WIDTH);
 
 	glewInit();
 	glinit();
