@@ -3,6 +3,7 @@
 #include <stdio.h>
 
 #include "raytracer/rt_accel_array.h"
+#include "raytracer/rt_accel_spheres.h"
 
 Scene::Scene()
 {
@@ -14,6 +15,10 @@ Scene::~Scene()
 {
 	for(int i = 0; i < this->meshes.size(); ++i) {
 		delete this->meshes[i];
+	}
+
+	for (int i = 0; i < this->lights.size(); ++i) {
+		delete this->lights[i];
 	}
 
 	delete this->mesh_structure;

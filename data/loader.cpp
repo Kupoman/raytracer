@@ -21,6 +21,16 @@ static Eigen::Vector3f _convertVector(aiVector3D avec)
 	return vec;
 }
 
+static Eigen::Vector3f _convertColor(aiColor3D color)
+{
+	Eigen::Vector3f vec;
+	vec(0) = color[0]*255;
+	vec(1) = color[1]*255;
+	vec(2) = color[2]*255;
+
+	return vec;
+}
+
 static void _traverseNodes(aiNode* node, const aiScene* ascene, Scene* scene)
 {
 //	fprintf(stderr, "%s\n", node->mName.C_Str());
@@ -66,6 +76,15 @@ static void _mergeScene(const aiScene* ascene, Scene* scene)
 	if (ascene->HasCameras()) {
 		aiCamera* acamera = ascene->mCameras[0];
 		scene->camera->setFOV(acamera->mHorizontalFOV);
+	}
+
+	for (int i = 0; i < ascene->mNumLights; ++i) {
+		Light* light = new Light;
+		aiLight* alight = ascene->mLights[i];
+		light->position = _convertVector(ascene->mRootNode->FindNode(alight->mName)->mTransformation * alight->mPosition);
+		fprintf(stderr, "LightPos: %.2f, %.2f, %.2f\n", light->position(0), light->position(1), light->position(2));
+		light->color = _convertColor(alight->mColorDiffuse);
+		scene->lights.push_back(light);
 	}
 }
 
