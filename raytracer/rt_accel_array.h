@@ -6,12 +6,6 @@
 #include "rt_iaccel.h"
 #include "data/data.h"
 
-typedef struct {
-	Eigen::Vector3f position;
-	float radius;
-	Material *material;
-} Sphere;
-
 class AccelArray : public IAccel
 {
 	std::vector<Eigen::Vector3f> v0;
