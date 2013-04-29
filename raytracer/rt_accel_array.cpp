@@ -70,12 +70,13 @@ void AccelArray::intersect(Ray* ray, Result *result)
 {
 
 	Eigen::Vector3f E1, E2, T, P, Q, tuv;
-	float det, t, u, v;
+	float det, inv_det, t, u, v;
 
 	Eigen::Vector3f D = *ray->getDirection();
 	Eigen::Vector3f O = *ray->getOrigin();
 
-	float min_distance = 1000000;
+	float min_t = 1000000, min_u, min_v;
+	int min_index = -1;
 	result->hit = false;
 
 	for (int i = 0; i < this->v0.size(); ++i) {
@@ -89,23 +90,37 @@ void AccelArray::intersect(Ray* ray, Result *result)
 			continue;
 
 		T = O - this->v0[i];
+		u = T.dot(P);
+
+		if (u < 0 || u > det) continue;
 
 		Q = T.cross(E1);
+		v = D.dot(Q);
 
-		tuv = Eigen::Vector3f(Q.dot(E2), P.dot(T), Q.dot(D)) / det;
+		if (v < 0 || u + v > det) continue;
 
-		if (tuv(1) < 0 || tuv(2) < 0 || tuv(1) + tuv(2) > 1 || 1 < tuv(1)) continue;
+		t = E2.dot(Q);
+		inv_det = 1.0 / det;
 
-		t = tuv(0);
-		u = tuv(1);
-		v = tuv(2);
-		if (t < min_distance) {
-			result->position = (1 - u -v)*this->v0[i] + u*this->v1[i] + v*this->v2[i];
-			result->normal = (1 - u -v)*this->n0[i] + u*this->n1[i] + v*this->n2[i];
-			result->normal.normalize();
-			min_distance = t;
-			result->hit = true;
-			result->material = &this->materials[this->material[i]];
+		t *= inv_det;
+		u *= inv_det;
+		v *= inv_det;
+
+		if (t < min_t) {
+			min_t = t;
+			min_u = u;
+			min_v = v;
+			min_index = i;
 		}
+	}
+
+	if (min_index != -1) {
+		u = min_u;
+		v = min_v;
+		result->position = (1 - u -v)*this->v0[min_index] + u*this->v1[min_index] + v*this->v2[min_index];
+		result->normal = (1 - u -v)*this->n0[min_index] + u*this->n1[min_index] + v*this->n2[min_index];
+		result->normal.normalize();
+		result->hit = true;
+		result->material = &this->materials[this->material[min_index]];
 	}
 }
