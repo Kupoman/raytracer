@@ -184,15 +184,16 @@ void draw(void)
 	clock_t t = clock();
 	glClearColor(0.3f,0.3f,0.3f,1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
-	Eigen::Vector3f result;
+	Eigen::Vector3f result = Eigen::Vector3f(255, 0, 0);;
 	Result hitResult;
 
 	Ray* screenRays = scene.camera->getScreenRays();
 	int c=0;
 	for (int i = 0; i < WINDOW_WIDTH*WINDOW_HEIGHT; i++) {
-		scene.mesh_structure->intersect(&screenRays[i], &hitResult);
-		if (hitResult.hit) {
-			shade(&screenRays[i], &hitResult, &result, 0);
+//		scene.mesh_structure->intersect(&screenRays[i], &hitResult);
+		if (scene.mesh_structure->occlude(&screenRays[i])) {
+//		if (hitResult.hit) {
+			//shade(&screenRays[i], &hitResult, &result, 0);
 			points.color[c++] = (unsigned char)(std::min((int)result(0), 255));
 			points.color[c++] = (unsigned char)(std::min((int)result(1), 255));
 			points.color[c++] = (unsigned char)(std::min((int)result(2), 255));

@@ -11,25 +11,55 @@
 #include "scene.h"
 #include "data.h"
 
-static void _traverseNodes(aiNode* node, Scene* scene)
+static Eigen::Vector3f _convertVector(aiVector3D avec)
+{
+	Eigen::Vector3f vec;
+	vec(0) = avec[0];
+	vec(1) = avec[1];
+	vec(2) = avec[2];
+
+	return vec;
+}
+
+static void _traverseNodes(aiNode* node, const aiScene* ascene, Scene* scene)
 {
 //	fprintf(stderr, "%s\n", node->mName.C_Str());
-	if (node->mNumMeshes) {
-		Mesh *mesh = new Mesh;
+	for (int i = 0; i < node->mNumMeshes; ++i) {
+		Mesh* mesh = new Mesh;
+		aiMesh* amesh = ascene->mMeshes[node->mMeshes[i]];
 		mesh->position = Eigen::Vector3f(node->mTransformation.a4,
 												   node->mTransformation.b4,
 												   node->mTransformation.c4);
+		mesh->num_verts = amesh->mNumVertices;
+		mesh->num_faces = amesh->mNumFaces;
+		mesh->verts = new Eigen::Vector3f[mesh->num_verts];
+		mesh->normals = new Eigen::Vector3f[mesh->num_verts];
+		mesh->faces = new Face[mesh->num_faces];
+		for (int j = 0; j < mesh->num_verts; ++j) {
+			mesh->verts[j] = _convertVector(node->mTransformation * amesh->mVertices[j]);
+			mesh->normals[j] = _convertVector(amesh->mNormals[j]);
+			fprintf(stderr, "vert: %.2f, %.2f, %.2f\n", mesh->verts[j](0), mesh->verts[j](1), mesh->verts[j](2));
+			fprintf(stderr, "normal: %.2f, %.2f, %.2f\n", mesh->normals[j](0), mesh->normals[j](1), mesh->normals[j](2));
+		}
+		for (int j = 0; j < mesh->num_faces; ++j) {
+//			fprintf(stderr, "Indices: %d, %d, %d\n", amesh->mFaces[j].mIndices[0], amesh->mFaces[j].mIndices[1], amesh->mFaces[j].mIndices[2]);
+			mesh->faces[j].v[0] = amesh->mFaces[j].mIndices[0];
+			mesh->faces[j].v[1] = amesh->mFaces[j].mIndices[1];
+			mesh->faces[j].v[2] = amesh->mFaces[j].mIndices[2];
+
+//			fprintf(stderr, "saved: %d, %d, %d\n", mesh->faces[j].v[0], mesh->faces[j].v[1], mesh->faces[j].v[2]);
+		}
 		scene->addMesh(mesh);
 	}
 
 	for (int i = 0; i < node->mNumChildren; ++i) {
-		_traverseNodes(node->mChildren[i], scene);
+		_traverseNodes(node->mChildren[i], ascene, scene);
 	}
 }
 
 static void _mergeScene(const aiScene* ascene, Scene* scene)
 {
-	_traverseNodes(ascene->mRootNode, scene);
+	_traverseNodes(ascene->mRootNode, ascene, scene);
 
 	if (ascene->HasCameras()) {
 		aiCamera* acamera = ascene->mCameras[0];

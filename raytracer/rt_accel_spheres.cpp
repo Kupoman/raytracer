@@ -35,15 +35,15 @@ void AccelSpheres::update()
 
 }
 
-bool AccelSpheres::occlude(Ray ray)
+bool AccelSpheres::occlude(Ray* ray)
 {
 	Sphere *s;
 	Eigen::Vector3f *Rd, *Ro;
 	float a, b, c;
 	for (int i = 0; i < this->spheres.size(); i++) {
 		s = this->spheres[i];
-		Rd = ray.getDirection();
-		Ro = ray.getOrigin();
+		Rd = ray->getDirection();
+		Ro = ray->getOrigin();
 		
 		a = 1;
 		b = (2 * *Rd).dot(*Ro - s->position);

@@ -1,5 +1,5 @@
-#ifndef __RT_ACCEL_SPHERES__
-#define __RT_ACCEL_SHPERES__
+#ifndef __RT_ACCEL_ARRAY__
+#define __RT_ACCEL_ARRAY__
 
 #include <vector>
 #include "Eigen/Dense"
@@ -11,12 +11,15 @@ typedef struct {
 	Material *material;
 } Sphere;
 
-class AccelSpheres : public IAccel
+class AccelArray : public IAccel
 {
-	class std::vector<Sphere*> spheres;
+	std::vector<Eigen::Vector3f> v0;
+	std::vector<Eigen::Vector3f> v1;
+	std::vector<Eigen::Vector3f> v2;
+	std::vector<Eigen::Vector3f> e1;
+	std::vector<Eigen::Vector3f> e2;
 public:
-	AccelSpheres();
-	void addSphere(float posX, float posY, float posZ, float radius);
+	AccelArray();
 	virtual void addMesh(Mesh* mesh);
 	virtual void update();
 	virtual bool occlude(class Ray* ray);

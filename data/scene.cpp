@@ -2,11 +2,11 @@
 #include "camera.h"
 #include <stdio.h>
 
-#include "raytracer/rt_accel_spheres.h"
+#include "raytracer/rt_accel_array.h"
 
 Scene::Scene()
 {
-	this->mesh_structure = new AccelSpheres();
+	this->mesh_structure = new AccelArray();
 	this->camera = new Camera(0.86, 480, 480);
 }
 
@@ -22,6 +22,7 @@ Scene::~Scene()
 
 void Scene::addMesh(Mesh *mesh)
 {
+	fprintf(stderr, "faces:%d, verts: %d\n", mesh->num_faces, mesh->num_verts);
 	this->mesh_structure->addMesh(mesh);
 	this->meshes.push_back(mesh);
 }

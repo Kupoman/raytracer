@@ -5,8 +5,10 @@ INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR})
 ADD_LIBRARY(raytracer STATIC
 	rt_iaccel.h
 	
+	rt_accel_array.h
 	rt_accel_spheres.h
 	rt_ray.h
 	
+	rt_accel_array.cpp
 	rt_accel_spheres.cpp
     rt_ray.cpp) 
