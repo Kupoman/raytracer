@@ -183,27 +183,27 @@ void draw(void)
 {
 	clock_t t = clock();
 	glClearColor(0.3f,0.3f,0.3f,1.0f);
-    glClear(GL_COLOR_BUFFER_BIT);
-	Eigen::Vector3f result = Eigen::Vector3f(255, 0, 0);;
-	Result hitResult;
+	glClear(GL_COLOR_BUFFER_BIT);
 
 	Ray* screenRays = scene.camera->getScreenRays();
-	int c=0;
+
+	//#pragma omp parallel for
 	for (int i = 0; i < WINDOW_WIDTH*WINDOW_HEIGHT; i++) {
+		Eigen::Vector3f result;
+		Result hitResult;
 		scene.mesh_structure->intersect(&screenRays[i], &hitResult);
-//		if (scene.mesh_structure->occlude(&screenRays[i])) {
 		if (hitResult.hit) {
 			shade(&screenRays[i], &hitResult, &result, 0);
-			points.color[c++] = (unsigned char)(std::min((int)result(0), 255));
-			points.color[c++] = (unsigned char)(std::min((int)result(1), 255));
-			points.color[c++] = (unsigned char)(std::min((int)result(2), 255));
-			points.color[c++] = 255;
+			points.color[4*i+0] = (unsigned char)(std::min((int)result(0), 255));
+			points.color[4*i+1] = (unsigned char)(std::min((int)result(1), 255));
+			points.color[4*i+2] = (unsigned char)(std::min((int)result(2), 255));
+			points.color[4*i+3] = 255;
 		}
 		else {
-			points.color[c++] = 0;
-			points.color[c++] = 0;
-			points.color[c++] = 0;
-			points.color[c++] = 0;
+			points.color[4*i+0] = 0;
+			points.color[4*i+1] = 0;
+			points.color[4*i+2] = 0;
+			points.color[4*i+3] = 0;
 		}
 	}
 
