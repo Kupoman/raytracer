@@ -106,6 +106,8 @@ void AccelArray::intersect(Ray* ray, Result *result)
 		u *= inv_det;
 		v *= inv_det;
 
+		if (t < 0.000001) continue;
+
 		if (t < min_t) {
 			min_t = t;
 			min_u = u;

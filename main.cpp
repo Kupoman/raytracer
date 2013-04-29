@@ -19,8 +19,8 @@
 
 typedef Eigen::Matrix<unsigned char, 3, 1> EigenColor3;
 
-const int WINDOW_WIDTH = 640;
-const int WINDOW_HEIGHT = 640;
+const int WINDOW_WIDTH = 320;
+const int WINDOW_HEIGHT = 320;
 
 const unsigned int point_count = WINDOW_WIDTH*WINDOW_HEIGHT;
 
@@ -138,7 +138,7 @@ void glexit(void)
 void shade(Ray *ray, Result* result, Eigen::Vector3f *color, int pass)
 {
 	if (pass < 3) {
-		Eigen::Vector3f light_pos = Eigen::Vector3f(0, 0, 10);
+		Eigen::Vector3f light_pos = Eigen::Vector3f(-5, 0, 10);
 		Eigen::Vector3f V = result->position;
 		Eigen::Vector3f L = light_pos-V;
 		Eigen::Vector3f N = result->normal;
@@ -153,18 +153,18 @@ void shade(Ray *ray, Result* result, Eigen::Vector3f *color, int pass)
 		Eigen::Vector3f mat_color = result->material->color;
 
 		/* Shadow */
-//		Ray light_ray = Ray(V, L);
-//		scene.mesh_structure->intersect(&light_ray, result);
-//		if (result->hit) {
-//			float distance = (result->position - V).norm();
-//			if (distance < L.norm()) {
-//				*color = Eigen::Vector3f(0, 0, 0);
-//				return;
-//			}
-//		}
+		Ray light_ray = Ray(V, L);
+		scene.mesh_structure->intersect(&light_ray, result);
+		if (result->hit) {
+			float distance = (result->position - V).norm();
+			if (distance < L.norm()) {
+				*color = Eigen::Vector3f(0, 0, 0);
+				return;
+			}
+		}
 
 		/* Reflection */
-		float ref = 0.0;//0.33;
+		float ref = 0.33;
 		Eigen::Vector3f ref_color = Eigen::Vector3f(0, 0, 0);
 		scene.mesh_structure->intersect(&ref_ray, result);
 		if (result->hit)
@@ -239,7 +239,7 @@ int main(int argc, char **argv)
 	glutDisplayFunc(draw);
 	glutCloseFunc(exit);
 	
-	loadFile("monkey.dae", &scene);
+	loadFile("scene.dae", &scene);
 	scene.camera->setHeight(WINDOW_HEIGHT);
 	scene.camera->setWidth(WINDOW_WIDTH);
 
