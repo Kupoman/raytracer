@@ -20,8 +20,8 @@ void AccelArray::addMesh(Mesh* mesh)
 		this->n0.push_back(mesh->normals[mesh->faces[i].v[0]]);
 		this->n1.push_back(mesh->normals[mesh->faces[i].v[1]]);
 		this->n2.push_back(mesh->normals[mesh->faces[i].v[2]]);
-		this->e1.push_back(this->v1[i] - this->v0[i]);
-		this->e2.push_back(this->v2[i] - this->v0[i]);
+		this->e1.push_back(this->v1[this->v1.size()-1] - this->v0[this->v0.size()-1]);
+		this->e2.push_back(this->v2[this->v2.size()-1] - this->v0[this->v0.size()-1]);
 		this->material.push_back(this->materials.size());
 	}
 
