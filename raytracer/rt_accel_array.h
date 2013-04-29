@@ -4,6 +4,7 @@
 #include <vector>
 #include "Eigen/Dense"
 #include "rt_iaccel.h"
+#include "data/data.h"
 
 typedef struct {
 	Eigen::Vector3f position;
@@ -16,8 +17,14 @@ class AccelArray : public IAccel
 	std::vector<Eigen::Vector3f> v0;
 	std::vector<Eigen::Vector3f> v1;
 	std::vector<Eigen::Vector3f> v2;
+	std::vector<Eigen::Vector3f> n0;
+	std::vector<Eigen::Vector3f> n1;
+	std::vector<Eigen::Vector3f> n2;
 	std::vector<Eigen::Vector3f> e1;
 	std::vector<Eigen::Vector3f> e2;
+	std::vector<unsigned int> material;
+
+	std::vector<Material> materials;
 public:
 	AccelArray();
 	virtual void addMesh(Mesh* mesh);

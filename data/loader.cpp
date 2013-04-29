@@ -35,11 +35,13 @@ static void _traverseNodes(aiNode* node, const aiScene* ascene, Scene* scene)
 		mesh->verts = new Eigen::Vector3f[mesh->num_verts];
 		mesh->normals = new Eigen::Vector3f[mesh->num_verts];
 		mesh->faces = new Face[mesh->num_faces];
+		aiMatrix4x4 normal_mat = aiMatrix4x4(node->mTransformation);
+		normal_mat.Inverse().Transpose();
 		for (int j = 0; j < mesh->num_verts; ++j) {
 			mesh->verts[j] = _convertVector(node->mTransformation * amesh->mVertices[j]);
-			mesh->normals[j] = _convertVector(amesh->mNormals[j]);
-			fprintf(stderr, "vert: %.2f, %.2f, %.2f\n", mesh->verts[j](0), mesh->verts[j](1), mesh->verts[j](2));
-			fprintf(stderr, "normal: %.2f, %.2f, %.2f\n", mesh->normals[j](0), mesh->normals[j](1), mesh->normals[j](2));
+			mesh->normals[j] = _convertVector(normal_mat * amesh->mNormals[j]);
+//			fprintf(stderr, "vert: %.2f, %.2f, %.2f\n", mesh->verts[j](0), mesh->verts[j](1), mesh->verts[j](2));
+//			fprintf(stderr, "normal: %.2f, %.2f, %.2f\n", mesh->normals[j](0), mesh->normals[j](1), mesh->normals[j](2));
 		}
 		for (int j = 0; j < mesh->num_faces; ++j) {
 //			fprintf(stderr, "Indices: %d, %d, %d\n", amesh->mFaces[j].mIndices[0], amesh->mFaces[j].mIndices[1], amesh->mFaces[j].mIndices[2]);

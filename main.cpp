@@ -153,18 +153,18 @@ void shade(Ray *ray, Result* result, Eigen::Vector3f *color, int pass)
 		Eigen::Vector3f mat_color = result->material->color;
 
 		/* Shadow */
-		Ray light_ray = Ray(V, L);
-		scene.mesh_structure->intersect(&light_ray, result);
-		if (result->hit) {
-			float distance = (result->position - V).norm();
-			if (distance < L.norm()) {
-				*color = Eigen::Vector3f(0, 0, 0);
-				return;
-			}
-		}
+//		Ray light_ray = Ray(V, L);
+//		scene.mesh_structure->intersect(&light_ray, result);
+//		if (result->hit) {
+//			float distance = (result->position - V).norm();
+//			if (distance < L.norm()) {
+//				*color = Eigen::Vector3f(0, 0, 0);
+//				return;
+//			}
+//		}
 
 		/* Reflection */
-		float ref = 0.33;
+		float ref = 0.0;//0.33;
 		Eigen::Vector3f ref_color = Eigen::Vector3f(0, 0, 0);
 		scene.mesh_structure->intersect(&ref_ray, result);
 		if (result->hit)
@@ -190,10 +190,10 @@ void draw(void)
 	Ray* screenRays = scene.camera->getScreenRays();
 	int c=0;
 	for (int i = 0; i < WINDOW_WIDTH*WINDOW_HEIGHT; i++) {
-//		scene.mesh_structure->intersect(&screenRays[i], &hitResult);
-		if (scene.mesh_structure->occlude(&screenRays[i])) {
-//		if (hitResult.hit) {
-			//shade(&screenRays[i], &hitResult, &result, 0);
+		scene.mesh_structure->intersect(&screenRays[i], &hitResult);
+//		if (scene.mesh_structure->occlude(&screenRays[i])) {
+		if (hitResult.hit) {
+			shade(&screenRays[i], &hitResult, &result, 0);
 			points.color[c++] = (unsigned char)(std::min((int)result(0), 255));
 			points.color[c++] = (unsigned char)(std::min((int)result(1), 255));
 			points.color[c++] = (unsigned char)(std::min((int)result(2), 255));
