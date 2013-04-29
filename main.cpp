@@ -239,7 +239,7 @@ int main(int argc, char **argv)
 	glutDisplayFunc(draw);
 	glutCloseFunc(exit);
 	
-	loadFile("cube.dae", &scene);
+	loadFile("monkey.dae", &scene);
 	scene.camera->setHeight(WINDOW_HEIGHT);
 	scene.camera->setWidth(WINDOW_WIDTH);
 

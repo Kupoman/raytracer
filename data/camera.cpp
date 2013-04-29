@@ -30,7 +30,7 @@ Ray* Camera::getScreenRays()
 			rays[i].setOrigin(0, 0, 0);
 
 			dirX = 2 * ((x+0.5) / this->width) - 1;
-			dirY = 1 - 2 * ((y+0.5) / this->height);
+			dirY = 2 * ((y+0.5) / this->height) - 1;
 			dirX *= aspect;
 			rays[i].setDirection(dirX*this->fov, dirY*this->fov, -1);
 		}
