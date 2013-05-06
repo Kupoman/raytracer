@@ -161,14 +161,14 @@ void shade(Ray *ray, Result* result, Eigen::Vector3f *color, int pass)
 			lambert = std::min(std::max(lambert, 0.0f), 1.0f);
 
 			/* Shadow */
-//			Ray light_ray = Ray(V, L);
-//			scene.mesh_structure->intersect(&light_ray, result);
-//			if (result->hit) {
-//				float distance = (result->position - V).norm();
-//				if (distance < L.norm()) {
-//					lambert = std::max(lambert-0.2, 0.0);
-//				}
-//			}
+			Ray light_ray = Ray(V, L);
+			scene.mesh_structure->intersect(&light_ray, result);
+			if (result->hit) {
+				float distance = (result->position - V).norm();
+				if (distance < L.norm()) {
+					lambert = std::max(lambert-0.2, 0.0);
+				}
+			}
 
 			/* Specular */
 			float phong = H.dot(N);
