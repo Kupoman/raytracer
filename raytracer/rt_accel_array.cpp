@@ -6,6 +6,8 @@
 #include <time.h>
 #include <algorithm>
 
+#define EPSILON 0.00001
+
 AccelArray::AccelArray()
 {
 	srand(420);
@@ -54,7 +56,7 @@ bool AccelArray::occlude(Ray* ray)
 		P = D.cross(E2);
 
 		det = P.dot(E1);
-		if (det < 0.000001)
+		if (det < EPSILON)
 			continue;
 
 		T = O - this->v0[i];
@@ -90,7 +92,7 @@ void AccelArray::intersect(Ray* ray, Result *result)
 		P = D.cross(E2);
 
 		det = P.dot(E1);
-		if (det < 0.000001)
+		if (det < EPSILON)
 			continue;
 
 		T = O - this->v0[i];
@@ -110,7 +112,7 @@ void AccelArray::intersect(Ray* ray, Result *result)
 		u *= inv_det;
 		v *= inv_det;
 
-		if (t < 0.000001) continue;
+		if (t < EPSILON) continue;
 
 		if (t < min_t) {
 			min_t = t;
