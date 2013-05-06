@@ -88,11 +88,14 @@ static void _mergeScene(const aiScene* ascene, Scene* scene)
 		mat->color = _convertColor(color);
 		amat->Get(AI_MATKEY_COLOR_REFLECTIVE, color);
 		mat->reflectivity = color[0];
+		amat->Get(AI_MATKEY_OPACITY, mat->alpha);
+		mat->alpha = 1.0f - mat->alpha;
+		amat->Get(AI_MATKEY_REFRACTI, mat->ior);
+//		std::cout << mat->ior << std::endl;
 		scene->materials.push_back(mat);
 
 		/* Texture */
 		mat->texture = NULL;
-		aiTextureType atextype;
 		unsigned int texcount = amat->GetTextureCount(aiTextureType_DIFFUSE);
 		if (texcount) {
 			aiString path;
@@ -102,7 +105,7 @@ static void _mergeScene(const aiScene* ascene, Scene* scene)
 			else {
 				mat->texture = new Texture(path.C_Str());
 				scene->textures.push_back(mat->texture);
-				std::cout << "Filepath: " << path.C_Str() << std::endl;
+//				std::cout << "Filepath: " << path.C_Str() << std::endl;
 			}
 		}
 //		fprintf(stderr, "Color: %.2f, %.2f, %.2f\n", color[0], color[1], color[2]);

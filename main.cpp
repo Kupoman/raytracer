@@ -151,6 +151,12 @@ void shade(Ray *ray, Result* result, Eigen::Vector3f *color, int pass)
 		Ray ref_ray = Ray(V, R);
 		Material* material = result->material;
 
+
+		float IoR = material->ior;
+		Eigen::Vector3f T = IoR * (I - N * I.dot(N));
+		T -= N * sqrt(1 - (IoR*IoR * (1 - I.dot(N)*I.dot(N))));
+		Ray refract_ray = Ray(V, T);
+
 		for (int i = 0; i < scene.lights.size(); ++i) {
 			Eigen::Vector3f light_pos = scene.lights[i]->position;
 			Eigen::Vector3f L = light_pos-V;
@@ -176,18 +182,27 @@ void shade(Ray *ray, Result* result, Eigen::Vector3f *color, int pass)
 			phong = pow(phong, 50);
 			specular += Eigen::Vector3f(100*phong, 100*phong, 100*phong);
 		}
+
 		/* Reflection */
 		Eigen::Vector3f ref_color = Eigen::Vector3f(0, 0, 0);
 		scene.mesh_structure->intersect(&ref_ray, result);
 		if (result->hit)
 			shade(&ref_ray, result, &ref_color, pass+1);
 
+		/* Refraction */
+		Eigen::Vector3f refraction_color = Eigen::Vector3f(0, 0, 0);
+		scene.mesh_structure->intersect(&refract_ray, result);
+		if (result->hit)
+			shade(&refract_ray, result, &refraction_color, pass+1);
+
 		float ref = material->reflectivity;
+		float alpha = material->alpha;
 		Eigen::Vector3f diff_color = material->color;
 		if (material->texture) {
 			diff_color = material->texture->lookup(texcoord(0), texcoord(1));
 		}
-		*color = lambert * ((1.0-ref)*diff_color + ref*ref_color) + specular;
+		*color = lambert * ((1.0-ref-alpha)*diff_color + ref*ref_color + alpha*refraction_color) + specular;
+//		*color = refraction_color;
 	}
 }
  

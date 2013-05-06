@@ -18,6 +18,8 @@ public:
 typedef struct {
 	Eigen::Vector3f color;
 	float reflectivity;
+	float alpha;
+	float ior;
 	Texture *texture;
 } Material;
 
