@@ -147,15 +147,8 @@ void shade(Ray *ray, Result* result, Eigen::Vector3f *color, int pass)
 		Eigen::Vector3f N = result->normal;
 		Eigen::Vector2f texcoord = result->texcoord;
 		Eigen::Vector3f I = *ray->getDirection();
-		Eigen::Vector3f R = I - 2 * I.dot(N) * N;
-		Ray ref_ray = Ray(V, R);
 		Material* material = result->material;
 
-
-		float IoR = material->ior;
-		Eigen::Vector3f T = IoR * (I - N * I.dot(N));
-		T -= N * sqrt(1 - (IoR*IoR * (1 - I.dot(N)*I.dot(N))));
-		Ray refract_ray = Ray(V, T);
 
 		for (int i = 0; i < scene.lights.size(); ++i) {
 			Eigen::Vector3f light_pos = scene.lights[i]->position;
@@ -185,15 +178,26 @@ void shade(Ray *ray, Result* result, Eigen::Vector3f *color, int pass)
 
 		/* Reflection */
 		Eigen::Vector3f ref_color = Eigen::Vector3f(0, 0, 0);
-		scene.mesh_structure->intersect(&ref_ray, result);
-		if (result->hit)
-			shade(&ref_ray, result, &ref_color, pass+1);
+		if (material->reflectivity > 0) {
+			Eigen::Vector3f R = I - 2 * I.dot(N) * N;
+			Ray ref_ray = Ray(V, R);
+			scene.mesh_structure->intersect(&ref_ray, result);
+			if (result->hit)
+				shade(&ref_ray, result, &ref_color, pass+1);
+		}
 
 		/* Refraction */
 		Eigen::Vector3f refraction_color = Eigen::Vector3f(0, 0, 0);
-		scene.mesh_structure->intersect(&refract_ray, result);
-		if (result->hit)
-			shade(&refract_ray, result, &refraction_color, pass+1);
+		if (material->alpha > 0.1) {
+			float IoR = material->ior;
+			Eigen::Vector3f T = (I - N * I.dot(N))/IoR;
+			T -= N * sqrt(1 - ((1 - I.dot(N)*I.dot(N)))/IoR*IoR);
+			Ray refract_ray = Ray(V, T);
+
+			scene.mesh_structure->intersect(&refract_ray, result);
+			if (result->hit)
+				shade(&refract_ray, result, &refraction_color, pass+1);
+		}
 
 		float ref = material->reflectivity;
 		float alpha = material->alpha;
@@ -202,7 +206,6 @@ void shade(Ray *ray, Result* result, Eigen::Vector3f *color, int pass)
 			diff_color = material->texture->lookup(texcoord(0), texcoord(1));
 		}
 		*color = lambert * ((1.0-ref-alpha)*diff_color + ref*ref_color + alpha*refraction_color) + specular;
-//		*color = refraction_color;
 	}
 }
  
