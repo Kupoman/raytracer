@@ -4,14 +4,28 @@
 #include "Eigen/Dense"
 #include <vector>
 
+class Texture {
+private:
+	unsigned char* pixels;
+	unsigned int width, height;
+	struct FIBITMAP* bitmap;
+public:
+	Texture(const char* filename = NULL);
+	~Texture();
+	Eigen::Vector3f lookup(float u, float v);
+};
+
 typedef struct {
 	Eigen::Vector3f color;
+	float reflectivity;
+	Texture *texture;
 } Material;
 
 typedef struct {
 	bool hit;
 	Eigen::Vector3f position;
 	Eigen::Vector3f normal;
+	Eigen::Vector2f texcoord;
 	Material *material;
 } Result;
 
@@ -32,6 +46,7 @@ public:
 	unsigned int num_verts;
 	Eigen::Vector3f* verts;
 	Eigen::Vector3f* normals;
+	Eigen::Vector2f* texcoords;
 	unsigned int num_faces;
 	Face* faces;
 	Material *material;

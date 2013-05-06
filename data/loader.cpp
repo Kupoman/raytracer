@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <iostream>
 
 
 #include <assimp/Importer.hpp> // C++ importer interface
@@ -44,12 +45,17 @@ static void _traverseNodes(aiNode* node, const aiScene* ascene, Scene* scene)
 		mesh->num_faces = amesh->mNumFaces;
 		mesh->verts = new Eigen::Vector3f[mesh->num_verts];
 		mesh->normals = new Eigen::Vector3f[mesh->num_verts];
+		mesh->texcoords = new Eigen::Vector2f[mesh->num_verts];
 		mesh->faces = new Face[mesh->num_faces];
 		aiMatrix4x4 normal_mat = aiMatrix4x4(node->mTransformation);
 		normal_mat.Inverse().Transpose();
+		Eigen::Vector3f temp_texcoord = Eigen::Vector3f();
 		for (int j = 0; j < mesh->num_verts; ++j) {
 			mesh->verts[j] = _convertVector(node->mTransformation * amesh->mVertices[j]);
 			mesh->normals[j] = _convertVector(normal_mat * amesh->mNormals[j]);
+			if (amesh->HasTextureCoords(0))
+				temp_texcoord = _convertVector(amesh->mTextureCoords[0][j]);
+			mesh->texcoords[j] = Eigen::Vector2f(temp_texcoord(0), temp_texcoord(1));
 //			fprintf(stderr, "vert: %.2f, %.2f, %.2f\n", mesh->verts[j](0), mesh->verts[j](1), mesh->verts[j](2));
 //			fprintf(stderr, "normal: %.2f, %.2f, %.2f\n", mesh->normals[j](0), mesh->normals[j](1), mesh->normals[j](2));
 		}
@@ -61,6 +67,7 @@ static void _traverseNodes(aiNode* node, const aiScene* ascene, Scene* scene)
 
 //			fprintf(stderr, "saved: %d, %d, %d\n", mesh->faces[j].v[0], mesh->faces[j].v[1], mesh->faces[j].v[2]);
 		}
+		mesh->material = scene->materials[amesh->mMaterialIndex];
 		scene->addMesh(mesh);
 	}
 
@@ -71,18 +78,48 @@ static void _traverseNodes(aiNode* node, const aiScene* ascene, Scene* scene)
 
 static void _mergeScene(const aiScene* ascene, Scene* scene)
 {
+	for (int i = 0; i < ascene->mNumMaterials; ++i) {
+		aiMaterial* amat = ascene->mMaterials[i];
+		Material* mat = new Material;
+		aiColor3D color;
+		if (AI_SUCCESS != amat->Get(AI_MATKEY_COLOR_DIFFUSE, color)) {
+			fprintf(stderr, "Error reading color\n");
+		}
+		mat->color = _convertColor(color);
+		amat->Get(AI_MATKEY_COLOR_REFLECTIVE, color);
+		mat->reflectivity = color[0];
+		scene->materials.push_back(mat);
+
+		/* Texture */
+		mat->texture = NULL;
+		aiTextureType atextype;
+		unsigned int texcount = amat->GetTextureCount(aiTextureType_DIFFUSE);
+		if (texcount) {
+			aiString path;
+			if (AI_SUCCESS != amat->GetTexture(aiTextureType_DIFFUSE, 0, &path)) {
+				fprintf(stderr, "Error loading texture\n");
+			}
+			else {
+				mat->texture = new Texture(path.C_Str());
+				scene->textures.push_back(mat->texture);
+				std::cout << "Filepath: " << path.C_Str() << std::endl;
+			}
+		}
+//		fprintf(stderr, "Color: %.2f, %.2f, %.2f\n", color[0], color[1], color[2]);
+	}
+
 	_traverseNodes(ascene->mRootNode, ascene, scene);
 
 	if (ascene->HasCameras()) {
 		aiCamera* acamera = ascene->mCameras[0];
-		scene->camera->setFOV(acamera->mHorizontalFOV);
+		scene->camera->setFOV(acamera->mHorizontalFOV/2);
 	}
 
 	for (int i = 0; i < ascene->mNumLights; ++i) {
 		Light* light = new Light;
 		aiLight* alight = ascene->mLights[i];
 		light->position = _convertVector(ascene->mRootNode->FindNode(alight->mName)->mTransformation * alight->mPosition);
-		fprintf(stderr, "LightPos: %.2f, %.2f, %.2f\n", light->position(0), light->position(1), light->position(2));
+		//fprintf(stderr, "LightPos: %.2f, %.2f, %.2f\n", light->position(0), light->position(1), light->position(2));
 		light->color = _convertColor(alight->mColorDiffuse);
 		scene->lights.push_back(light);
 	}

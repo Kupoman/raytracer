@@ -20,15 +20,18 @@ void AccelArray::addMesh(Mesh* mesh)
 		this->n0.push_back(mesh->normals[mesh->faces[i].v[0]]);
 		this->n1.push_back(mesh->normals[mesh->faces[i].v[1]]);
 		this->n2.push_back(mesh->normals[mesh->faces[i].v[2]]);
+		this->t0.push_back(mesh->texcoords[mesh->faces[i].v[0]]);
+		this->t1.push_back(mesh->texcoords[mesh->faces[i].v[1]]);
+		this->t2.push_back(mesh->texcoords[mesh->faces[i].v[2]]);
 		this->e1.push_back(this->v1[this->v1.size()-1] - this->v0[this->v0.size()-1]);
 		this->e2.push_back(this->v2[this->v2.size()-1] - this->v0[this->v0.size()-1]);
-		this->material.push_back(this->materials.size());
+		this->materials.push_back(mesh->material);
 	}
 
-	Material material;
-	material.color = Eigen::Vector3f(rand()%256, rand()%256, rand()%256);
+//	Material material;
+//	material.color = Eigen::Vector3f(rand()%256, rand()%256, rand()%256);
 //	material.color = Eigen::Vector3f(255, 0, 0);
-	this->materials.push_back(material);
+//	this->materials.push_back(mesh->material);
 }
 
 void AccelArray::update()
@@ -78,6 +81,7 @@ void AccelArray::intersect(Ray* ray, Result *result)
 	float min_t = 1000000, min_u, min_v;
 	int min_index = -1;
 	result->hit = false;
+	result->material = NULL;
 
 	for (int i = 0; i < this->v0.size(); ++i) {
 
@@ -122,7 +126,8 @@ void AccelArray::intersect(Ray* ray, Result *result)
 		result->position = (1 - u -v)*this->v0[min_index] + u*this->v1[min_index] + v*this->v2[min_index];
 		result->normal = (1 - u -v)*this->n0[min_index] + u*this->n1[min_index] + v*this->n2[min_index];
 		result->normal.normalize();
+		result->texcoord = (1 - u -v)*this->t0[min_index] + u*this->t1[min_index] + v*this->t2[min_index];
 		result->hit = true;
-		result->material = &this->materials[this->material[min_index]];
+		result->material = this->materials[min_index];
 	}
 }

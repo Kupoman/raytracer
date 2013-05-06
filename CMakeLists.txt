@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 2.8)
 # Project Name
 PROJECT(CSCD599)
 
-SET(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_MODULE_PATH})
+SET(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
 
 #########################################################
@@ -25,6 +25,15 @@ add_definitions(${OpenGL_DEFINITIONS})
 if(NOT OPENGL_FOUND)
     message(ERROR " OPENGL not found!")
 endif(NOT OPENGL_FOUND)
+#########################################################
+# FIND FreeImage
+#########################################################
+find_package(FreeImage REQUIRED)
+include_directories(${FREEIMAGE_INCLUDE_DIRS})
+link_directories(${FREEIMAGE_LIBRARY_DIRS})
+if(NOT FREEIMAGE_FOUND)
+	message(ERROR " FreeImage not found!")
+endif(NOT FREEIMAGE_FOUND)
 #########################################################
 # FIND GLEW
 #########################################################
@@ -56,6 +65,6 @@ add_executable(cscd599 main.cpp)
 #########################################################
 ADD_SUBDIRECTORY(data)
 ADD_SUBDIRECTORY(raytracer)
-target_link_libraries(cscd599 data raytracer ${GLEW_LIBRARIES} ${OPENGL_LIBRARIES} ${GLUT_LIBRARY})
+target_link_libraries(cscd599 data raytracer ${FREEIMAGE_LIBRARY} ${GLEW_LIBRARIES} ${OPENGL_LIBRARIES} ${GLUT_LIBRARY})
 
 

@@ -21,6 +21,9 @@ Scene::~Scene()
 		delete this->lights[i];
 	}
 
+	for (int i = 0; i < this->materials.size(); ++i) {
+		delete this->materials[i];
+	}
 	delete this->mesh_structure;
 	delete this->camera;
 }
