@@ -141,7 +141,7 @@ void shade(Ray *ray, Result* result, Eigen::Vector3f *color, int pass)
 {
 	if (pass < 2) {
 		float lambert = 0;
-		Eigen::Vector3f specular = Eigen::Vector3f(0, 0, 0);
+		float specular = 0;
 
 		Eigen::Vector3f V = result->position;
 		Eigen::Vector3f N = result->normal;
@@ -165,15 +165,14 @@ void shade(Ray *ray, Result* result, Eigen::Vector3f *color, int pass)
 			if (result->hit) {
 				float distance = (result->position - V).norm();
 				if (distance < L.norm()) {
-					lambert = std::max(lambert-0.2, 0.0);
+					lambert = std::max(lambert-0.4, 0.0);
 				}
 			}
 
 			/* Specular */
 			float phong = H.dot(N);
 			phong = std::max(phong, 0.0f);
-			phong = pow(phong, 50);
-			specular += Eigen::Vector3f(100*phong, 100*phong, 100*phong);
+			specular += pow(phong, material->shininess);
 		}
 
 		/* Reflection */
@@ -201,11 +200,12 @@ void shade(Ray *ray, Result* result, Eigen::Vector3f *color, int pass)
 
 		float ref = material->reflectivity;
 		float alpha = material->alpha;
-		Eigen::Vector3f diff_color = material->color;
+		Eigen::Vector3f diff_color = material->diffuse_color;
+		Eigen::Vector3f spec_color = material->specular_color;
 		if (material->texture) {
 			diff_color = material->texture->lookup(texcoord(0), texcoord(1));
 		}
-		*color = lambert * ((1.0-ref-alpha)*diff_color + ref*ref_color + alpha*refraction_color) + specular;
+		*color = lambert * ((1.0-ref-alpha)*diff_color + ref*ref_color + alpha*refraction_color) + specular*spec_color;
 	}
 }
  

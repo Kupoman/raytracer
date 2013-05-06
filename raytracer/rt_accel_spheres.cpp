@@ -21,7 +21,7 @@ void AccelSpheres::addSphere(float posX, float posY, float posZ, float radius)
 	s->radius = radius;
 	s->material = new Material;
 	//s->material->color = Eigen::Vector3f(255, 0, 0);
-	s->material->color = Eigen::Vector3f(rand()%256, rand()%256, rand()%256);
+	s->material->diffuse_color = Eigen::Vector3f(rand()%256, rand()%256, rand()%256);
 	this->spheres.push_back(s);
 }
 void AccelSpheres::addMesh(Mesh* mesh)

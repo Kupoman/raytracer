@@ -16,7 +16,9 @@ public:
 };
 
 typedef struct {
-	Eigen::Vector3f color;
+	Eigen::Vector3f diffuse_color;
+	Eigen::Vector3f specular_color;
+	float shininess;
 	float reflectivity;
 	float alpha;
 	float ior;

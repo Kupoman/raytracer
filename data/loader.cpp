@@ -83,11 +83,16 @@ static void _mergeScene(const aiScene* ascene, Scene* scene)
 		Material* mat = new Material;
 		aiColor3D color;
 		if (AI_SUCCESS != amat->Get(AI_MATKEY_COLOR_DIFFUSE, color)) {
-			fprintf(stderr, "Error reading color\n");
+			fprintf(stderr, "Error reading diffuse color\n");
 		}
-		mat->color = _convertColor(color);
+		mat->diffuse_color = _convertColor(color);
+		if (AI_SUCCESS != amat->Get(AI_MATKEY_COLOR_SPECULAR, color)) {
+			fprintf(stderr, "Error reading diffuse color\n");
+		}
+		mat->specular_color = _convertColor(color);
 		amat->Get(AI_MATKEY_COLOR_REFLECTIVE, color);
 		mat->reflectivity = color[0];
+		amat->Get(AI_MATKEY_SHININESS, mat->shininess);
 		amat->Get(AI_MATKEY_OPACITY, mat->alpha);
 		mat->alpha = 1.0f - mat->alpha;
 		amat->Get(AI_MATKEY_REFRACTI, mat->ior);
