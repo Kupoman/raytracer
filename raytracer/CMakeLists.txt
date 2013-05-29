@@ -7,8 +7,10 @@ ADD_LIBRARY(raytracer STATIC
 	
 	rt_accel_array.h
 	rt_accel_spheres.h
+	rt_photon_map.h
 	rt_ray.h
 	
 	rt_accel_array.cpp
 	rt_accel_spheres.cpp
+	rt_photon_map.cpp
     rt_ray.cpp) 
