@@ -30,13 +30,13 @@ public:
 	short flag;
 };
 
-void PhotonMap::emit_photon(Scene* scene, Ray* r, Eigen::Vector3f energy, float max_dist, int pass)
+void PhotonMap::emit_photon(IAccel *meshes, Ray* r, Eigen::Vector3f energy, float max_dist, int pass)
 {
 	Result result;
 
 	if (pass > 1) return;
 
-	scene->mesh_structure->intersect(r, &result);
+	meshes->intersect(r, &result);
 	if (!result.hit) return;
 
 //	float dist = 0;
@@ -65,7 +65,7 @@ void PhotonMap::emit_photon(Scene* scene, Ray* r, Eigen::Vector3f energy, float 
 		energy = result.material->diffuse_color * (energy.norm()/255);
 //		std::cout << energy.norm()/255 <<std::endl;
 		//energy *= diff_ref;
-		this->emit_photon(scene, r, energy, max_dist-dist, pass++);
+		this->emit_photon(meshes, r, energy, max_dist-dist, pass++);
 	}
 
 }
@@ -85,7 +85,7 @@ static bool sort_z(Photon* a, Photon* b)
 	return a->position[2] < b->position[2];
 }
 
-void PhotonMap::generate(Scene* scene, int count)
+void PhotonMap::generate(const Scene* scene, IAccel *meshes, int count)
 {
 	Eigen::Vector3f dir;
 	Eigen::Vector3f energy;
@@ -109,7 +109,7 @@ void PhotonMap::generate(Scene* scene, int count)
 			ray.setOrigin(light->position(0), light->position(1), light->position(2));
 			ray.setDirection(dir(0), dir(1), dir(2));
 
-			this->emit_photon(scene, &ray, energy, max_dist, 0);
+			this->emit_photon(meshes, &ray, energy, max_dist, 0);
 			continue;
 		}
 	}

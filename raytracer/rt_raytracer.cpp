@@ -7,6 +7,8 @@
 #include "rt_ray.h"
 #include "rt_iaccel.h"
 
+#include "rt_accel_array.h"
+
 RayTracer::RayTracer()
 {
 	this->bounces = 2;
@@ -17,15 +19,24 @@ RayTracer::RayTracer()
 	this->photon_count = 10000;
 	this->photon_estimate = 100;
 	this->photon_radius = 1.0;
+
+	this->meshes = new AccelArray();
 }
 
 RayTracer::~RayTracer()
 {
 	if (this->photon_map)
 		delete this->photon_map;
+
+	delete this->meshes;
 }
 
-void RayTracer::shade(Scene& scene, Ray *ray, Result* result, Eigen::Vector3f *color, int pass)
+void RayTracer::addMesh(Mesh *mesh)
+{
+	this->meshes->addMesh(mesh);
+}
+
+void RayTracer::shade(const Scene& scene, Ray *ray, Result* result, Eigen::Vector3f *color, int pass)
 {
 
 	if (pass < this->bounces) {
@@ -54,7 +65,7 @@ void RayTracer::shade(Scene& scene, Ray *ray, Result* result, Eigen::Vector3f *c
 				/* Shadow */
 				if (this->do_shadows) {
 					Ray light_ray = Ray(V+N*bias, L);
-					scene.mesh_structure->intersect(&light_ray, result);
+					this->meshes->intersect(&light_ray, result);
 					if (result->hit) {
 						float distance = (result->position - V).norm();
 						if (distance < L.norm()) {
@@ -75,7 +86,7 @@ void RayTracer::shade(Scene& scene, Ray *ray, Result* result, Eigen::Vector3f *c
 		if (material->reflectivity > 0) {
 			Eigen::Vector3f R = I - 2 * I.dot(N) * N;
 			Ray ref_ray = Ray(V, R);
-			scene.mesh_structure->intersect(&ref_ray, result);
+			this->meshes->intersect(&ref_ray, result);
 			if (result->hit)
 				shade(scene, &ref_ray, result, &ref_color, pass+1);
 		}
@@ -88,7 +99,7 @@ void RayTracer::shade(Scene& scene, Ray *ray, Result* result, Eigen::Vector3f *c
 			T -= N * sqrt(1 - ((1 - I.dot(N)*I.dot(N)))/IoR*IoR);
 			Ray refract_ray = Ray(V, T);
 
-			scene.mesh_structure->intersect(&refract_ray, result);
+			this->meshes->intersect(&refract_ray, result);
 			if (result->hit)
 				shade(scene, &refract_ray, result, &refraction_color, pass+1);
 		}
@@ -109,18 +120,18 @@ void RayTracer::shade(Scene& scene, Ray *ray, Result* result, Eigen::Vector3f *c
 	}
 }
 
-void RayTracer::renderScene(Scene& scene, int width, int height, unsigned char *color)
+void RayTracer::renderScene(const Scene& scene, int width, int height, unsigned char *color)
 {
 
 	if (this->photon_map) {
-		this->photon_map->generate(&scene, this->photon_count);
+		this->photon_map->generate(&scene, this->meshes, this->photon_count);
 	}
 
 	Ray* screenRays = scene.camera->getScreenRays();
 	for (int i = 0; i < width*height; i++) {
 		Eigen::Vector3f result;
 		Result hitResult;
-		scene.mesh_structure->intersect(&screenRays[i], &hitResult);
+		this->meshes->intersect(&screenRays[i], &hitResult);
 		if (hitResult.hit) {
 			shade(scene, &screenRays[i], &hitResult, &result, 0);
 			color[4*i+0] = (unsigned char)(std::min((int)result(0), 255));

@@ -9,11 +9,13 @@ public:
 	std::vector<Mesh*> meshes;
 	std::vector<Material*> materials;
 	std::vector<Texture*> textures;
-	class IAccel* mesh_structure;
 	class Camera* camera;
+	class RayTracer* raytracer;
 	void addMesh(Mesh *mesh);
 	Scene();
 	~Scene();
+
+	void draw(unsigned char* output);
 
 };
 

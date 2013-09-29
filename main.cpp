@@ -20,8 +20,8 @@
 
 typedef Eigen::Matrix<unsigned char, 3, 1> EigenColor3;
 
-const int WINDOW_WIDTH = 400;
-const int WINDOW_HEIGHT = 400;
+const int WINDOW_WIDTH = 640;
+const int WINDOW_HEIGHT = 480;
 
 const unsigned int point_count = WINDOW_WIDTH*WINDOW_HEIGHT;
 
@@ -143,7 +143,7 @@ void draw(void)
 	glClearColor(0.3f,0.3f,0.3f,1.0f);
 	glClear(GL_COLOR_BUFFER_BIT);
 
-	ray_tracer.renderScene(scene, WINDOW_WIDTH, WINDOW_HEIGHT, (unsigned char*)&points.color);
+	scene.draw((unsigned char*)&points.color);
 
 
 	glBufferSubData(GL_ARRAY_BUFFER, offsetof(Points, color), sizeof(points.color), &points.color);
