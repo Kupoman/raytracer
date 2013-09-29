@@ -19,7 +19,7 @@
 #include "data/scene.h"
 #include "data/loader.h"
 
-#define USE_PHOTON_MAP
+//#define USE_PHOTON_MAP
 
 const int PHOTON_COUNT = 500000;
 const int PHOTON_ESTIMATE = 500;
@@ -276,6 +276,15 @@ void exit(void)
 
 int main(int argc, char **argv)
 {
+	char file[256];
+	if (argc > 1) {
+		strcpy(file, argv[1]);
+	}
+	else {
+		printf("No file specified.\n");
+		exit(1);
+	}
+
 	glutInit(&argc, argv);
 	glutInitDisplayMode(GLUT_RGB|GLUT_DOUBLE);
 
@@ -292,7 +301,7 @@ int main(int argc, char **argv)
 	glutDisplayFunc(draw);
 	glutCloseFunc(exit);
 
-	loadFile("box2.dae", &scene);
+	loadFile(file, &scene);
 	scene.camera->setHeight(WINDOW_HEIGHT);
 	scene.camera->setWidth(WINDOW_WIDTH);
 
