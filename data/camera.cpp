@@ -56,3 +56,13 @@ void Camera::setHeight(float height)
 	delete [] rays;
 	this->rays = new Ray[this->width*this->height];
 }
+
+int Camera::getWidth()
+{
+	return this->width;
+}
+
+int Camera::getHeight()
+{
+	return this->height;
+}

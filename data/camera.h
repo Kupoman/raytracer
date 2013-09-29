@@ -16,6 +16,8 @@ public:
 	void setFOV(float fov);
 	void setWidth(float width);
 	void setHeight(float height);
+	int getWidth();
+	int getHeight();
 };
 
 #endif
