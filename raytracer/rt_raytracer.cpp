@@ -20,6 +20,10 @@ struct Points {
 
 RayTracer::RayTracer()
 {
+	this->bounces = 1;
+
+	this->do_shadows = false;
+
 	this->photon_map = NULL;
 	this->photon_count = 10000;
 	this->photon_estimate = 100;
@@ -35,7 +39,7 @@ RayTracer::~RayTracer()
 void RayTracer::shade(Scene& scene, Ray *ray, Result* result, Eigen::Vector3f *color, int pass)
 {
 
-	if (pass < 4) {
+	if (pass < this->bounces) {
 		float bias = 0.1;
 		float lambert = 0.0;
 		float shadow = 1;
@@ -59,12 +63,14 @@ void RayTracer::shade(Scene& scene, Ray *ray, Result* result, Eigen::Vector3f *c
 				lambert = std::min(std::max(lambert, 0.0f), 1.0f);
 
 				/* Shadow */
-				Ray light_ray = Ray(V+N*bias, L);
-				scene.mesh_structure->intersect(&light_ray, result);
-				if (result->hit) {
-					float distance = (result->position - V).norm();
-					if (distance < L.norm()) {
-						shadow = std::max(shadow-0.4, 0.0);
+				if (this->do_shadows) {
+					Ray light_ray = Ray(V+N*bias, L);
+					scene.mesh_structure->intersect(&light_ray, result);
+					if (result->hit) {
+						float distance = (result->position - V).norm();
+						if (distance < L.norm()) {
+							shadow = std::max(shadow-0.4, 0.0);
+						}
 					}
 				}
 

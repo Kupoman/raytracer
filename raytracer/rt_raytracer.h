@@ -7,6 +7,10 @@
 class RayTracer
 {
 private:
+	int bounces;
+
+	bool do_shadows;
+
 	// Photon Mapping
 	class PhotonMap* photon_map;
 	int photon_count;
