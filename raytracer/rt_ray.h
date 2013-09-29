@@ -1,7 +1,7 @@
-#include "Eigen/Dense"
-
 #ifndef __RT_RAY__
 #define __RT_RAY__
+
+#include "Eigen/Dense"
 
 class Ray
 {
