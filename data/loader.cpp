@@ -76,7 +76,7 @@ static void _traverseNodes(aiNode* node, const aiScene* ascene, Scene* scene)
 	}
 }
 
-static void _mergeScene(const aiScene* ascene, Scene* scene)
+static void _mergeScene(const aiScene* ascene, Scene* scene, std::string relpath)
 {
 	for (int i = 0; i < ascene->mNumMaterials; ++i) {
 		aiMaterial* amat = ascene->mMaterials[i];
@@ -108,7 +108,8 @@ static void _mergeScene(const aiScene* ascene, Scene* scene)
 				fprintf(stderr, "Error loading texture\n");
 			}
 			else {
-				mat->texture = new Texture(path.C_Str());
+				relpath += path.C_Str();
+				mat->texture = new Texture(relpath.c_str());
 				scene->textures.push_back(mat->texture);
 //				std::cout << "Filepath: " << path.C_Str() << std::endl;
 			}
@@ -151,8 +152,13 @@ bool loadFile(const std::string filename, Scene* scene)
 		fprintf(stderr, "%s\n", importer.GetErrorString());
 		return false;
 	}
+
+	// Get path for relative textures
+	int split = filename.rfind("/");
+	std::string path = filename.substr(0, split+1);
+
 	// Now we can access the file's contents.
-	_mergeScene(ascene, scene);
+	_mergeScene(ascene, scene, path);
 	// We're done. Everything will be cleaned up by the importer destructor
 	return true;
 }
