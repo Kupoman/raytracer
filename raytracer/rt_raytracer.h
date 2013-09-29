@@ -7,8 +7,6 @@
 class RayTracer
 {
 private:
-	struct camera* camera;
-
 	// Photon Mapping
 	class PhotonMap* photon_map;
 	int photon_count;
