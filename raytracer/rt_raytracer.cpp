@@ -7,20 +7,9 @@
 #include "rt_ray.h"
 #include "rt_iaccel.h"
 
-
-const int WINDOW_WIDTH = 400;
-const int WINDOW_HEIGHT = 400;
-
-const unsigned int point_count = WINDOW_WIDTH*WINDOW_HEIGHT;
-
-struct Points {
-	float verts[point_count*2];
-	unsigned char color[point_count*4];
-};
-
 RayTracer::RayTracer()
 {
-	this->bounces = 1;
+	this->bounces = 2;
 
 	this->do_shadows = false;
 
