@@ -11,6 +11,7 @@ public:
 	std::vector<Texture*> textures;
 	class Camera* camera;
 	class RayTracer* raytracer;
+	class Rasterizer* rasterizer;
 	void addMesh(Mesh *mesh);
 	Scene();
 	~Scene();

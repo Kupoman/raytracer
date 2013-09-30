@@ -57,6 +57,11 @@ void Camera::setHeight(float height)
 	this->rays = new Ray[this->width*this->height];
 }
 
+float Camera::getFOV()
+{
+	return this->fov;
+}
+
 int Camera::getWidth()
 {
 	return this->width;

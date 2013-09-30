@@ -25,8 +25,9 @@ const int WINDOW_HEIGHT = 480;
 
 const unsigned int point_count = WINDOW_WIDTH*WINDOW_HEIGHT;
 
+clock_t g_time = clock();
+
 Scene scene = Scene();
-RayTracer ray_tracer = RayTracer();
 
 GLuint vertex_buffer;
 struct Points {
@@ -99,34 +100,34 @@ void glinit(void)
 		}
 	}
 
-	glGenBuffers(1, &vertex_buffer);
-	glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(points), &points, GL_STATIC_DRAW);
-	glEnableVertexAttribArray(0);
-	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, 0);
-	glEnableVertexAttribArray(1);
-	glVertexAttribPointer(1, 4, GL_UNSIGNED_BYTE, GL_TRUE, 0, (void*)offsetof(struct Points, color));
+//	glGenBuffers(1, &vertex_buffer);
+//	glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer);
+//	glBufferData(GL_ARRAY_BUFFER, sizeof(points), &points, GL_STATIC_DRAW);
+//	glEnableVertexAttribArray(0);
+//	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, 0);
+//	glEnableVertexAttribArray(1);
+//	glVertexAttribPointer(1, 4, GL_UNSIGNED_BYTE, GL_TRUE, 0, (void*)offsetof(struct Points, color));
 
-	GLuint vertex_shader = glCreateShader(GL_VERTEX_SHADER);
-	glShaderSource(vertex_shader, 1, &vertex_shader_string, NULL);
-	glCompileShader(vertex_shader);
-	printInfoLog(vertex_shader);
+//	GLuint vertex_shader = glCreateShader(GL_VERTEX_SHADER);
+//	glShaderSource(vertex_shader, 1, &vertex_shader_string, NULL);
+//	glCompileShader(vertex_shader);
+//	printInfoLog(vertex_shader);
 
-	GLuint fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
-	glShaderSource(fragment_shader, 1, &fragment_shader_string, NULL);
-	glCompileShader(fragment_shader);
-	printInfoLog(fragment_shader);
+//	GLuint fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
+//	glShaderSource(fragment_shader, 1, &fragment_shader_string, NULL);
+//	glCompileShader(fragment_shader);
+//	printInfoLog(fragment_shader);
 
-	shader_program = glCreateProgram();
-	glAttachShader(shader_program, vertex_shader);
-	glAttachShader(shader_program, fragment_shader);
-	glLinkProgram(shader_program);
-	printInfoLog(shader_program);
+//	shader_program = glCreateProgram();
+//	glAttachShader(shader_program, vertex_shader);
+//	glAttachShader(shader_program, fragment_shader);
+//	glLinkProgram(shader_program);
+//	printInfoLog(shader_program);
 
-	glDeleteShader(vertex_shader);
-	glDeleteShader(fragment_shader);
+//	glDeleteShader(vertex_shader);
+//	glDeleteShader(fragment_shader);
 
-	glUseProgram(shader_program);
+//	glUseProgram(shader_program);
 
 	glViewport(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
 }
@@ -139,20 +140,26 @@ void glexit(void)
  
 void draw(void)
 {
-	clock_t t = clock();
-	glClearColor(0.3f,0.3f,0.3f,1.0f);
-	glClear(GL_COLOR_BUFFER_BIT);
-
 	scene.draw((unsigned char*)&points.color);
 
 
-	glBufferSubData(GL_ARRAY_BUFFER, offsetof(Points, color), sizeof(points.color), &points.color);
+	//glBufferSubData(GL_ARRAY_BUFFER, offsetof(Points, color), sizeof(points.color), &points.color);
 
-	glDrawArrays(GL_POINTS, 0, point_count);
+	//glDrawArrays(GL_POINTS, 0, point_count);
 
-    glutSwapBuffers();
-	t = clock()-t;
-	fprintf(stderr, "%.2fms\n", 1000*((float)t)/CLOCKS_PER_SEC);
+	glutSwapBuffers();
+}
+
+void idle(void)
+{
+	char title[100];
+
+	float seconds = (float)(clock() - g_time) / CLOCKS_PER_SEC;
+	glutPostRedisplay();
+	sprintf(title, "Fafnir FPS:%.2f", 1.0 / seconds);
+	glutSetWindowTitle(title);
+
+	g_time = clock();
 }
 
 void exit(void)
@@ -185,14 +192,16 @@ int main(int argc, char **argv)
 
 
 	glutDisplayFunc(draw);
+	glutIdleFunc(idle);
 	glutCloseFunc(exit);
+
+	glewInit();
+	glinit();
 
 	loadFile(file, &scene);
 	scene.camera->setHeight(WINDOW_HEIGHT);
 	scene.camera->setWidth(WINDOW_WIDTH);
 
-	glewInit();
-	glinit();
 	glutMainLoop();
 
 	return 0;

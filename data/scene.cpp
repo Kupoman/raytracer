@@ -3,11 +3,15 @@
 #include <stdio.h>
 
 #include "raytracer/rt_raytracer.h"
+#include "rasterizer/ras_rasterizer.h"
 
 Scene::Scene()
 {
 	this->camera = new Camera(0.86, 480, 480);
 	this->raytracer = new RayTracer();
+	this->rasterizer = new Rasterizer();
+
+	this->rasterizer->setCamera(this->camera);
 }
 
 Scene::~Scene()
@@ -29,10 +33,13 @@ Scene::~Scene()
 void Scene::addMesh(Mesh *mesh)
 {
 	this->raytracer->addMesh(mesh);
+	this->rasterizer->addMesh(mesh);
 	this->meshes.push_back(mesh);
 }
 
 void Scene::draw(unsigned char *output)
 {
-	this->raytracer->renderScene(*this, this->camera->getWidth(), this->camera->getHeight(), output);
+	this->rasterizer->beginFrame();
+	this->rasterizer->drawMeshes();
+	//this->raytracer->renderScene(*this, this->camera->getWidth(), this->camera->getHeight(), output);
 }
