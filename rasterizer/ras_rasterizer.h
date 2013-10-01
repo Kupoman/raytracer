@@ -2,6 +2,8 @@
 #define __RAS_RASTERIZER__
 
 #include <vector>
+#include <map>
+#include <string>
 
 class Rasterizer
 {
@@ -11,9 +13,13 @@ private:
 
 	std::vector<class RasMesh*> meshes;
 
-	unsigned int shader_program;
+	std::map<std::string, unsigned int> shader_programs;
 
-	void initShader();
+	unsigned int prepass_color0_target;
+	unsigned int prepass_color1_target;
+	unsigned int prepass_depth_target;
+	unsigned int fbo_prepass;
+	void initPrepass();
 
 public:
 	Rasterizer();
@@ -23,6 +29,7 @@ public:
 
 	void setCamera(class Camera *camera);
 	void addMesh(class Mesh* mesh);
+	void drawPrepass();
 	void drawMeshes();
 };
 

@@ -59,8 +59,10 @@ void RasMesh::draw()
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, this->buffers[1]);
 
 	glEnableVertexAttribArray(0);
+	glEnableVertexAttribArray(1);
 
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(RasVertex), offsetof(RasVertex, position));
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(RasVertex), (void*)offsetof(RasVertex, position));
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_TRUE, sizeof(RasVertex), (void*)offsetof(RasVertex, normal));
 
 	glDrawElements(GL_TRIANGLES, this->index_count, GL_UNSIGNED_SHORT, (void*)0);
 

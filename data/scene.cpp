@@ -40,6 +40,7 @@ void Scene::addMesh(Mesh *mesh)
 void Scene::draw(unsigned char *output)
 {
 	this->rasterizer->beginFrame();
+	this->rasterizer->drawPrepass();
 	this->rasterizer->drawMeshes();
 	//this->raytracer->renderScene(*this, this->camera->getWidth(), this->camera->getHeight(), output);
 }

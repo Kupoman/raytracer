@@ -9,5 +9,10 @@ ADD_LIBRARY(rasterizer
 
 	ras_mesh.cpp
 	ras_rasterizer.cpp
-	)
 
+        shaders/shaders.h
+        shaders/prepass_vs.cpp
+        shaders/prepass_fs.cpp
+        shaders/mesh_vs.cpp
+        shaders/mesh_fs.cpp
+        )
