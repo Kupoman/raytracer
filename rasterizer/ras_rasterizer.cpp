@@ -3,18 +3,13 @@
 
 #include "GL/glew.h"
 
+#include "data/data.h"
 #include "data/camera.h"
 
 #include "shaders/shaders.h"
 
 #include "ras_rasterizer.h"
 #include "ras_mesh.h"
-
-const float IDENTITY[16] = {1.0, 0.0, 0.0, 0.0,
-					  0.0, 1.0, 0.0, 0.0,
-					  0.0, 0.0, 1.0, 0.0,
-					  0.0, 0.0, 0.0, 1.0,
-					 };
 
 Rasterizer::Rasterizer()
 {
@@ -108,14 +103,14 @@ void Rasterizer::beginFrame()
 {
 	if (this->camera)
 		projectionFromCamera(this->camera, this->proj_mat);
-
-	glEnable(GL_DEPTH_TEST);
-	glClearColor(0.3f,0.3f,0.3f,1.0f);
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 }
 
 void Rasterizer::drawMeshes()
 {
+	glEnable(GL_DEPTH_TEST);
+	glClearColor(0.3f,0.3f,0.3f,1.0f);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
 	if (!this->shader_programs["MESH"])
 		this->shader_programs["MESH"] = _initShader(shader_mesh_vs, shader_mesh_fs);
 
@@ -124,8 +119,8 @@ void Rasterizer::drawMeshes()
 	glUniformMatrix4fv(loc, 1, GL_FALSE, &this->proj_mat[0][0]);
 
 	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, this->prepass_color1_target);
-	loc = glGetUniformLocation(this->shader_programs["MESH"], "normal");
+	glBindTexture(GL_TEXTURE_2D, this->lpass_color0_target);
+	loc = glGetUniformLocation(this->shader_programs["MESH"], "lightBuffer");
 	glUniform1i(loc, 0);
 
 	for (int i=0; i < this->meshes.size(); i++) {
@@ -199,30 +194,98 @@ void Rasterizer::drawPrepass()
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
+void Rasterizer::initLightPass()
+{
+	this->shader_programs["LIGHTPASS"] = _initShader(shader_light_pass_vs, shader_light_pass_fs);
+
+	glGenFramebuffers(1, &this->fbo_lpass);
+	glBindFramebuffer(GL_FRAMEBUFFER, this->fbo_lpass);
+
+	// Light Buffer
+	glGenTextures(1, &this->lpass_color0_target);
+	glBindTexture(GL_TEXTURE_2D, this->lpass_color0_target);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16, this->camera->getWidth(), this->camera->getHeight(), 0, GL_RGB, GL_UNSIGNED_SHORT, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, this->lpass_color0_target, 0);
+
+	// Depth Buffer
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, this->prepass_depth_target, 0);
+
+	// Make sure everything is fine
+	GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+	if (status != GL_FRAMEBUFFER_COMPLETE)
+		fprintf(stderr, "Prepass FBO incomplete\n");
+
+
+	GLenum buffers[] = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1};
+	glDrawBuffers(1, buffers);
+
+	// Clean up state
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	glBindTexture(GL_TEXTURE_2D, 0);
+}
+void Rasterizer::drawLights(std::vector<Light*> lights)
+{
+	if (!this->fbo_lpass)
+		this->initLightPass();
+
+	glBindFramebuffer(GL_FRAMEBUFFER, this->fbo_lpass);
+
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glUseProgram(this->shader_programs["LIGHTPASS"]);
+
+	int loc;
+
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, this->prepass_color0_target);
+	loc = glGetUniformLocation(this->shader_programs["LIGHTPASS"], "normalBuffer");
+	glUniform1i(loc, 0);
+
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_2D, this->prepass_color1_target);
+	loc = glGetUniformLocation(this->shader_programs["LIGHTPASS"], "positionBuffer");
+	glUniform1i(loc, 1);
+
+	Light* light;
+	for (int i = 0; i < lights.size(); i++) {
+		light = lights[i];
+
+		loc = glGetUniformLocation(this->shader_programs["LIGHTPASS"], "light_position");
+		glUniform3fv(loc, 1, light->position.data());
+		this->drawFullscreenQuad();
+	}
+
+	glUseProgram(0);
+
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
 void Rasterizer::drawFullscreenQuad()
 {
 	float verts[] = {
-						-1, -1,
-						1, 1,
-						-1, 1,
-
-						-1, -1,
 						1, -1,
 						1, 1,
+						-1, -1,
+						-1, 1
 					};
 
-	if (!this->vbo_quad) {
+	if (!this->vao_quad) {
+		glGenVertexArrays(1, &this->vao_quad);
+		glBindVertexArray(this->vao_quad);
+
 		glGenBuffers(1, &this->vbo_quad);
 		glBindBuffer(GL_ARRAY_BUFFER, this->vbo_quad);
 		glBufferData(GL_ARRAY_BUFFER, sizeof(verts), verts, GL_STATIC_DRAW);
+
+		glEnableVertexAttribArray(0);
+		glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, 0);
 	}
 	else {
-		glBindBuffer(GL_ARRAY_BUFFER, this->vbo_quad);
+		glBindVertexArray(this->vao_quad);
 	}
 
-	glEnableVertexAttribArray(0);
-	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, 0);
-	glDrawArrays(GL_TRIANGLES, 0, 2);
+	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glBindVertexArray(0);
 }

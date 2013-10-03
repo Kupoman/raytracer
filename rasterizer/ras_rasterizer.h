@@ -5,6 +5,10 @@
 #include <map>
 #include <string>
 
+class Camera;
+class Mesh;
+struct Light;
+
 class Rasterizer
 {
 private:
@@ -19,9 +23,15 @@ private:
 	unsigned int prepass_color1_target;
 	unsigned int prepass_depth_target;
 	unsigned int fbo_prepass;
+
+	unsigned int lpass_color0_target;
+	unsigned int fbo_lpass;
+
 	void initPrepass();
+	void initLightPass();
 
 	unsigned int vbo_quad;
+	unsigned int vao_quad;
 	void drawFullscreenQuad();
 
 public:
@@ -30,9 +40,10 @@ public:
 
 	void beginFrame();
 
-	void setCamera(class Camera *camera);
-	void addMesh(class Mesh* mesh);
+	void setCamera(Camera *camera);
+	void addMesh(Mesh* mesh);
 	void drawPrepass();
+	void drawLights(std::vector<Light*> lights);
 	void drawMeshes();
 };
 

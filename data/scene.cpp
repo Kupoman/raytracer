@@ -41,6 +41,7 @@ void Scene::draw(unsigned char *output)
 {
 	this->rasterizer->beginFrame();
 	this->rasterizer->drawPrepass();
+	this->rasterizer->drawLights(this->lights);
 	this->rasterizer->drawMeshes();
 	//this->raytracer->renderScene(*this, this->camera->getWidth(), this->camera->getHeight(), output);
 }

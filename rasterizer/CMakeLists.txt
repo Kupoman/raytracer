@@ -11,6 +11,8 @@ ADD_LIBRARY(rasterizer
 	ras_rasterizer.cpp
 
         shaders/shaders.h
+	shaders/lpass_vs.cpp
+	shaders/lpass_fs.cpp
         shaders/prepass_vs.cpp
         shaders/prepass_fs.cpp
         shaders/mesh_vs.cpp
