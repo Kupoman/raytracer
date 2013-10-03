@@ -8,6 +8,7 @@ private:
 	unsigned short *indices;
 	int index_count;
 
+	unsigned int vao;
 	unsigned int buffers[2];  // 0 Vertex, 1 Index
 public:
 	RasMesh(class Mesh* mesh);

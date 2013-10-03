@@ -9,6 +9,9 @@
 
 RasMesh::RasMesh(Mesh *mesh)
 {
+	glGenVertexArrays(1, &this->vao);
+	glBindVertexArray(this->vao);
+
 	glGenBuffers(2, this->buffers);
 
 	this->verts = new RasVertex[mesh->num_verts];
@@ -39,8 +42,13 @@ RasMesh::RasMesh(Mesh *mesh)
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, this->buffers[1]);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, mesh->num_faces*sizeof(unsigned short)*3, this->indices, GL_STATIC_DRAW);
 
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+	glEnableVertexAttribArray(0);
+	glEnableVertexAttribArray(1);
+
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(RasVertex), (void*)offsetof(RasVertex, position));
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_TRUE, sizeof(RasVertex), (void*)offsetof(RasVertex, normal));
+
+	glBindVertexArray(0);
 
 	this->index_count = mesh->num_faces * 3;
 }
@@ -55,17 +63,9 @@ RasMesh::~RasMesh()
 
 void RasMesh::draw()
 {
-	glBindBuffer(GL_ARRAY_BUFFER, this->buffers[0]);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, this->buffers[1]);
-
-	glEnableVertexAttribArray(0);
-	glEnableVertexAttribArray(1);
-
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(RasVertex), (void*)offsetof(RasVertex, position));
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_TRUE, sizeof(RasVertex), (void*)offsetof(RasVertex, normal));
+	glBindVertexArray(this->vao);
 
 	glDrawElements(GL_TRIANGLES, this->index_count, GL_UNSIGNED_SHORT, (void*)0);
 
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+	glBindVertexArray(0);
 }
