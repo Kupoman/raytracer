@@ -15,7 +15,7 @@ public:
 	Eigen::Vector3f lookup(float u, float v);
 };
 
-typedef struct {
+struct Material{
 	Eigen::Vector3f diffuse_color;
 	Eigen::Vector3f specular_color;
 	float shininess;
@@ -23,25 +23,25 @@ typedef struct {
 	float alpha;
 	float ior;
 	Texture *texture;
-} Material;
+};
 
-typedef struct {
+struct Result{
 	bool hit;
 	Eigen::Vector3f position;
 	Eigen::Vector3f normal;
 	Eigen::Vector2f texcoord;
 	Material *material;
-} Result;
+};
 
-typedef struct {
+struct Light{
 	Eigen::Vector3f position;
 	Eigen::Vector3f color;
 	float energy;
-} Light;
+};
 
-typedef struct {
+struct Face{
 	unsigned int v[3];
-} Face;
+};
 
 class Mesh {
 public:
