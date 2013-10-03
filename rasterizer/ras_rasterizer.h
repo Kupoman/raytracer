@@ -21,6 +21,9 @@ private:
 	unsigned int fbo_prepass;
 	void initPrepass();
 
+	unsigned int vbo_quad;
+	void drawFullscreenQuad();
+
 public:
 	Rasterizer();
 	~Rasterizer();

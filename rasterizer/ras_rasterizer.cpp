@@ -10,6 +10,12 @@
 #include "ras_rasterizer.h"
 #include "ras_mesh.h"
 
+const float IDENTITY[16] = {1.0, 0.0, 0.0, 0.0,
+					  0.0, 1.0, 0.0, 0.0,
+					  0.0, 0.0, 1.0, 0.0,
+					  0.0, 0.0, 0.0, 1.0,
+					 };
+
 Rasterizer::Rasterizer()
 {
 	this->shader_programs["MESH"] = 0;
@@ -44,7 +50,7 @@ static void printInfoLog(GLhandleARB obj)
 
 	infoLog = (char *)malloc(infologLength);
 	glGetInfoLogARB(obj, infologLength, &charsWritten, infoLog);
-	printf("%s\n",infoLog);
+	fprintf(stderr,"%s\n",infoLog);
 	free(infoLog);
 	}
 }
@@ -117,6 +123,11 @@ void Rasterizer::drawMeshes()
 	int loc = glGetUniformLocation(this->shader_programs["MESH"], "proj_mat");
 	glUniformMatrix4fv(loc, 1, GL_FALSE, &this->proj_mat[0][0]);
 
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, this->prepass_color1_target);
+	loc = glGetUniformLocation(this->shader_programs["MESH"], "normal");
+	glUniform1i(loc, 0);
+
 	for (int i=0; i < this->meshes.size(); i++) {
 		this->meshes[i]->draw();
 	}
@@ -132,31 +143,35 @@ void Rasterizer::initPrepass()
 	// Normals Buffer
 	glGenTextures(1, &this->prepass_color0_target);
 	glBindTexture(GL_TEXTURE_2D, this->prepass_color0_target);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16_SNORM, this->camera->getWidth(), this->camera->getHeight(), 0, GL_RGB, GL_SHORT, NULL);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NONE);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NONE);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, this->camera->getWidth(), this->camera->getHeight(), 0, GL_RGB, GL_HALF_FLOAT, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, this->prepass_color0_target, 0);
 
 	// Position Buffer
 	glGenTextures(1, &this->prepass_color1_target);
 	glBindTexture(GL_TEXTURE_2D, this->prepass_color1_target);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, this->camera->getWidth(), this->camera->getHeight(), 0, GL_RGB, GL_HALF_FLOAT, NULL);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NONE);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NONE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, this->prepass_color1_target, 0);
 
 	// Depth Buffer
 	glGenTextures(1, &this->prepass_depth_target);
 	glBindTexture(GL_TEXTURE_2D, this->prepass_depth_target);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32F, this->camera->getWidth(), this->camera->getHeight(), 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NONE);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NONE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, this->prepass_depth_target, 0);
 
 	// Make sure everything is fine
 	GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
 	if (status != GL_FRAMEBUFFER_COMPLETE)
 		fprintf(stderr, "Prepass FBO incomplete\n");
+
+
+	GLenum buffers[] = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1};
+	glDrawBuffers(2, buffers);
 
 	// Clean up state
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -170,13 +185,44 @@ void Rasterizer::drawPrepass()
 
 	glBindFramebuffer(GL_FRAMEBUFFER, this->fbo_prepass);
 
+	glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
+
 	glUseProgram(this->shader_programs["PREPASS"]);
 	int loc = glGetUniformLocation(this->shader_programs["PREPASS"], "proj_mat");
 	glUniformMatrix4fv(loc, 1, GL_FALSE, &this->proj_mat[0][0]);
 
+	glViewport(0, 0, this->camera->getWidth(), this->camera->getHeight());
 	for (int i=0; i < this->meshes.size(); i++) {
 		this->meshes[i]->draw();
 	}
 
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
+void Rasterizer::drawFullscreenQuad()
+{
+	float verts[] = {
+						-1, -1,
+						1, 1,
+						-1, 1,
+
+						-1, -1,
+						1, -1,
+						1, 1,
+					};
+
+	if (!this->vbo_quad) {
+		glGenBuffers(1, &this->vbo_quad);
+		glBindBuffer(GL_ARRAY_BUFFER, this->vbo_quad);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(verts), verts, GL_STATIC_DRAW);
+	}
+	else {
+		glBindBuffer(GL_ARRAY_BUFFER, this->vbo_quad);
+	}
+
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, 0);
+	glDrawArrays(GL_TRIANGLES, 0, 2);
+
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
