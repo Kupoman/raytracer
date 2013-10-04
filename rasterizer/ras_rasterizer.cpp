@@ -123,7 +123,13 @@ void Rasterizer::drawMeshes()
 	loc = glGetUniformLocation(this->shader_programs["MESH"], "lightBuffer");
 	glUniform1i(loc, 0);
 
+	RasMesh *mesh;
 	for (int i=0; i < this->meshes.size(); i++) {
+		mesh = this->meshes[i];
+
+		loc = glGetUniformLocation(this->shader_programs["MESH"], "material_color");
+		glUniform3fv(loc, 1, mesh->getMaterialDiffColor());
+
 		this->meshes[i]->draw();
 	}
 }

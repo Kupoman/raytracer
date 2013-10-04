@@ -4,6 +4,7 @@
 class RasMesh
 {
 private:
+	struct Material* material;
 	struct RasVertex* verts;
 	unsigned short *indices;
 	int index_count;
@@ -13,6 +14,9 @@ private:
 public:
 	RasMesh(class Mesh* mesh);
 	~RasMesh();
+
+	// Material Access
+	float* getMaterialDiffColor();
 
 	void draw();
 };

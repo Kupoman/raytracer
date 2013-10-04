@@ -51,6 +51,7 @@ RasMesh::RasMesh(Mesh *mesh)
 	glBindVertexArray(0);
 
 	this->index_count = mesh->num_faces * 3;
+	this->material = mesh->material;
 }
 
 RasMesh::~RasMesh()
@@ -59,6 +60,12 @@ RasMesh::~RasMesh()
 
 	delete [] this->verts;
 	delete [] this->indices;
+}
+
+float* RasMesh::getMaterialDiffColor()
+{
+	Eigen::Vector3f color = this->material->diffuse_color / 255.0;
+	return color.data();
 }
 
 void RasMesh::draw()
