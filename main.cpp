@@ -20,8 +20,8 @@
 
 typedef Eigen::Matrix<unsigned char, 3, 1> EigenColor3;
 
-const int WINDOW_WIDTH = 640;
-const int WINDOW_HEIGHT = 480;
+const int WINDOW_WIDTH = 800;
+const int WINDOW_HEIGHT = 600;
 
 const unsigned int point_count = WINDOW_WIDTH*WINDOW_HEIGHT;
 
