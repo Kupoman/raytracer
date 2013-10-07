@@ -16,7 +16,5 @@ void main()\n\
 	vec3 albedo = (material_textured==1) ? texcolor : material_color;\n\
 	vec3 diffuse = albedo * light;\n\
 	fragColor = vec4(diffuse, 1.0);\n\
-//	vec4 test = texelFetch(prepassBuffer0, ivec2(gl_FragCoord.st), 0).rgba;\n\
-//	fragColor = vec4(test.rgb, 1.0);\n\
 }\n\
 ";
