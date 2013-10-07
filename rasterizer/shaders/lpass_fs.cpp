@@ -9,7 +9,7 @@ smooth in vec2 outTexcoord;\
 layout(location = 0) out vec4 lightBuffer;\
 void main()\
 {\
-	vec3 N = texture2D(normalBuffer, outTexcoord).rgb;\
+	vec3 N = texture2D(normalBuffer, outTexcoord).rgb * 2.0 - 1.0;\
 	vec3 V = texture2D(positionBuffer, outTexcoord).rgb;\
 	vec3 L = normalize(light_position - V);\
 	float lambert = dot(N, L);\

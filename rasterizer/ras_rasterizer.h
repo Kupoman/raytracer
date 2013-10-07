@@ -19,6 +19,8 @@ private:
 
 	std::map<std::string, unsigned int> shader_programs;
 
+	std::map<class Texture*, unsigned int> textures;
+
 	unsigned int prepass_color0_target;
 	unsigned int prepass_color1_target;
 	unsigned int prepass_depth_target;

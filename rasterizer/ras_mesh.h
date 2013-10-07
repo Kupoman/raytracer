@@ -17,6 +17,8 @@ public:
 
 	// Material Access
 	float* getMaterialDiffColor();
+	class Texture* getMaterialTexture();
+	bool getMaterialIsReflective();
 
 	void draw();
 };

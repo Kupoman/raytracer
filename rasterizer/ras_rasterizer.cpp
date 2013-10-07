@@ -79,9 +79,24 @@ void Rasterizer::setCamera(class Camera *camera)
 	this->camera = camera;
 }
 
-void Rasterizer::addMesh(class Mesh* mesh)
+void Rasterizer::addMesh(Mesh* mesh)
 {
 	this->meshes.push_back(new RasMesh(mesh));
+
+	Texture* tex = mesh->material->texture;
+
+	if (tex && !this->textures[tex]) {
+		unsigned int texid;
+
+
+		glGenTextures(1, &texid);
+		glBindTexture(GL_TEXTURE_2D, texid);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, tex->width, tex->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, tex->pixels);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+		glBindTexture(GL_TEXTURE_2D, 0);
+		this->textures[tex] = texid;
+	}
 }
 
 static void projectionFromCamera(Camera* camera, float mat[4][4])
@@ -123,6 +138,11 @@ void Rasterizer::drawMeshes()
 	loc = glGetUniformLocation(this->shader_programs["MESH"], "lightBuffer");
 	glUniform1i(loc, 0);
 
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_2D, this->prepass_color0_target);
+	loc = glGetUniformLocation(this->shader_programs["MESH"], "prepassBuffer0");
+	glUniform1i(loc, 1);
+
 	RasMesh *mesh;
 	for (int i=0; i < this->meshes.size(); i++) {
 		mesh = this->meshes[i];
@@ -130,8 +150,18 @@ void Rasterizer::drawMeshes()
 		loc = glGetUniformLocation(this->shader_programs["MESH"], "material_color");
 		glUniform3fv(loc, 1, mesh->getMaterialDiffColor());
 
+		loc = glGetUniformLocation(this->shader_programs["MESH"], "material_textured");
+		glUniform1i(loc, mesh->getMaterialTexture() != NULL);
+
+		glActiveTexture(GL_TEXTURE4);
+		glBindTexture(GL_TEXTURE_2D, this->textures[mesh->getMaterialTexture()]);
+		loc = glGetUniformLocation(this->shader_programs["MESH"], "texture_diffuse");
+		glUniform1i(loc, 4);
+
 		this->meshes[i]->draw();
 	}
+
+	glActiveTexture(0);
 }
 
 void Rasterizer::initPrepass()
@@ -144,7 +174,7 @@ void Rasterizer::initPrepass()
 	// Normals Buffer
 	glGenTextures(1, &this->prepass_color0_target);
 	glBindTexture(GL_TEXTURE_2D, this->prepass_color0_target);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, this->camera->getWidth(), this->camera->getHeight(), 0, GL_RGB, GL_HALF_FLOAT, NULL);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB10_A2, this->camera->getWidth(), this->camera->getHeight(), 0, GL_RGB, GL_UNSIGNED_INT, NULL);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, this->prepass_color0_target, 0);
@@ -193,8 +223,14 @@ void Rasterizer::drawPrepass()
 	glUniformMatrix4fv(loc, 1, GL_FALSE, &this->proj_mat[0][0]);
 
 	glViewport(0, 0, this->camera->getWidth(), this->camera->getHeight());
+
+	RasMesh *mesh;
 	for (int i=0; i < this->meshes.size(); i++) {
-		this->meshes[i]->draw();
+		mesh = this->meshes[i];
+		loc = glGetUniformLocation(this->shader_programs["PREPASS"], "isReflective");
+		glUniform1i(loc, mesh->getMaterialIsReflective());
+
+		mesh->draw();
 	}
 
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
