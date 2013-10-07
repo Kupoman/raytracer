@@ -6,10 +6,10 @@
 
 class Texture {
 private:
-	unsigned char* pixels;
-	unsigned int width, height;
 	struct FIBITMAP* bitmap;
 public:
+	unsigned char* pixels;
+	unsigned int width, height;
 	Texture(const char* filename = NULL);
 	~Texture();
 	Eigen::Vector3f lookup(float u, float v);
