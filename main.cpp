@@ -22,10 +22,15 @@ typedef Eigen::Matrix<unsigned char, 3, 1> EigenColor3;
 
 const int WINDOW_WIDTH = 800;
 const int WINDOW_HEIGHT = 600;
+const int FPS_UPDATE = 30;
 
 const unsigned int point_count = WINDOW_WIDTH*WINDOW_HEIGHT;
 
 clock_t g_time = clock();
+
+int g_frame = 1;
+float g_times[FPS_UPDATE];
+float g_fps = 0.0;
 
 Scene scene = Scene();
 
@@ -155,8 +160,17 @@ void idle(void)
 	char title[100];
 
 	float seconds = (float)(clock() - g_time) / CLOCKS_PER_SEC;
+	g_times[g_frame++ - 1] = seconds;
+	if (g_frame % FPS_UPDATE == 0) {
+		g_frame = 1;
+		float total = 0;
+		for (int i = 0; i < FPS_UPDATE; i++) {
+			total += g_times[i];
+		}
+		g_fps = FPS_UPDATE / total;
+	}
 	glutPostRedisplay();
-	sprintf(title, "Fafnir FPS:%.2f", 1.0 / seconds);
+	sprintf(title, "Fafnir FPS:%.2f", g_fps);
 	glutSetWindowTitle(title);
 
 	g_time = clock();
