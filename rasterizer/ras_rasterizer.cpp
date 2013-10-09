@@ -26,6 +26,9 @@ Rasterizer::~Rasterizer()
 		delete this->meshes[i];
 	}
 	this->meshes.clear();
+
+	delete [] this->position_transfer_buffer;
+	delete [] this->normal_transfer_buffer;
 }
 
 static void printInfoLog(GLhandleARB obj)
@@ -116,8 +119,21 @@ static void projectionFromCamera(Camera* camera, float mat[4][4])
 
 void Rasterizer::beginFrame()
 {
-	if (this->camera)
+	if (this->camera) {
 		projectionFromCamera(this->camera, this->proj_mat);
+
+		if (this->frame_width != this->camera->getWidth() ||
+			this->frame_height != this->camera->getHeight())
+		{
+			this->frame_width = this->camera->getWidth();
+			this->frame_height = this->camera->getHeight();
+			this->prepass_color0_buffer = new float[camera->getHeight() * camera->getWidth() * 4];
+			this->prepass_color1_buffer = new float[camera->getHeight() * camera->getWidth() * 3];
+
+			this->position_transfer_buffer = new Eigen::Vector3f[this->frame_width * this->frame_height];
+			this->normal_transfer_buffer = new Eigen::Vector3f[this->frame_width * this->frame_height];
+		}
+	}
 }
 
 void Rasterizer::drawMeshes()
@@ -161,7 +177,7 @@ void Rasterizer::drawMeshes()
 		this->meshes[i]->draw();
 	}
 
-	glActiveTexture(0);
+	glActiveTexture(GL_TEXTURE0);
 }
 
 void Rasterizer::initPrepass()
@@ -174,7 +190,7 @@ void Rasterizer::initPrepass()
 	// Normals Buffer
 	glGenTextures(1, &this->prepass_color0_target);
 	glBindTexture(GL_TEXTURE_2D, this->prepass_color0_target);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB10_A2, this->camera->getWidth(), this->camera->getHeight(), 0, GL_RGB, GL_UNSIGNED_INT, NULL);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB10_A2, this->camera->getWidth(), this->camera->getHeight(), 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, this->prepass_color0_target, 0);
@@ -330,4 +346,42 @@ void Rasterizer::drawFullscreenQuad()
 	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
 	glBindVertexArray(0);
+}
+
+void Rasterizer::getRayTraceData(int *count, Eigen::Vector3f **positions, Eigen::Vector3f **normals)
+{
+	return;
+	*count = 0;
+	std::vector<int> frag_idx;
+
+	glBindFramebuffer(GL_FRAMEBUFFER, this->fbo_prepass);
+	glReadBuffer(GL_COLOR_ATTACHMENT0);
+//	glReadPixels(0, 0, this->frame_width, this->frame_height, GL_RGBA, GL_FLOAT, this->prepass_color0_buffer);
+	for (int i = 0; i < *count; i++) {
+		if (this->prepass_color0_buffer[i*4 +3] > 0.0) {
+			frag_idx.push_back(i);
+		}
+	}
+	*count = frag_idx.size();
+
+
+	glReadBuffer(GL_COLOR_ATTACHMENT1);
+//	glReadPixels(0, 0, this->frame_width, this->frame_height, GL_RGB, GL_FLOAT, this->prepass_color1_buffer);
+
+	*positions = this->position_transfer_buffer;
+	*normals = this->normal_transfer_buffer;
+
+	for (int i = 0; i < *count; i++) {
+		int idx = frag_idx[i];
+
+		(*positions)[i][0] = this->prepass_color0_buffer[idx*4 + 0];
+		(*positions)[i][1] = this->prepass_color0_buffer[idx*4 + 1];
+		(*positions)[i][2] = this->prepass_color0_buffer[idx*4 + 2];
+
+		(*normals)[i][0] = this->prepass_color1_buffer[idx*3 + 0];
+		(*normals)[i][1] = this->prepass_color1_buffer[idx*3 + 1];
+		(*normals)[i][2] = this->prepass_color1_buffer[idx*3 + 2];
+	}
+
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }

@@ -39,9 +39,12 @@ void Scene::addMesh(Mesh *mesh)
 
 void Scene::draw(unsigned char *output)
 {
+	int count;
+	Eigen::Vector3f *positions, *normals;
 	this->rasterizer->beginFrame();
 	this->rasterizer->drawPrepass();
 	this->rasterizer->drawLights(this->lights);
 	this->rasterizer->drawMeshes();
+	this->rasterizer->getRayTraceData(&count, &positions, &normals);
 	//this->raytracer->renderScene(*this, this->camera->getWidth(), this->camera->getHeight(), output);
 }

@@ -5,6 +5,8 @@
 #include <map>
 #include <string>
 
+#include "Eigen/Dense"
+
 class Camera;
 class Mesh;
 struct Light;
@@ -13,6 +15,8 @@ class Rasterizer
 {
 private:
 	class Camera* camera;
+	int frame_width, frame_height;
+
 	float proj_mat[4][4];
 
 	std::vector<class RasMesh*> meshes;
@@ -22,12 +26,17 @@ private:
 	std::map<class Texture*, unsigned int> textures;
 
 	unsigned int prepass_color0_target;
+	float *prepass_color0_buffer;
 	unsigned int prepass_color1_target;
+	float *prepass_color1_buffer;
 	unsigned int prepass_depth_target;
 	unsigned int fbo_prepass;
 
 	unsigned int lpass_color0_target;
 	unsigned int fbo_lpass;
+
+	Eigen::Vector3f *position_transfer_buffer;
+	Eigen::Vector3f *normal_transfer_buffer;
 
 	void initPrepass();
 	void initLightPass();
@@ -47,6 +56,8 @@ public:
 	void drawPrepass();
 	void drawLights(std::vector<Light*> lights);
 	void drawMeshes();
+
+	void getRayTraceData(int *count, Eigen::Vector3f **positions, Eigen::Vector3f **normals);
 };
 
 #endif
