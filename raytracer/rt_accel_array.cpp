@@ -6,6 +6,8 @@
 #include <time.h>
 #include <algorithm>
 
+#include "data/data.h"
+
 #define EPSILON 0.00001
 
 AccelArray::AccelArray()
@@ -71,7 +73,7 @@ bool AccelArray::occlude(Ray* ray)
 	return false;
 }
 
-void AccelArray::intersect(Ray* ray, Result *result)
+bool AccelArray::intersect(Ray* ray, Result *result, Material **material)
 {
 
 	Eigen::Vector3f E1, E2, T, P, Q, tuv;
@@ -82,8 +84,6 @@ void AccelArray::intersect(Ray* ray, Result *result)
 
 	float min_t = 1000000, min_u, min_v;
 	int min_index = -1;
-	result->hit = false;
-	result->material = NULL;
 
 	for (int i = 0; i < this->v0.size(); ++i) {
 
@@ -129,7 +129,10 @@ void AccelArray::intersect(Ray* ray, Result *result)
 		result->normal = (1 - u -v)*this->n0[min_index] + u*this->n1[min_index] + v*this->n2[min_index];
 		result->normal.normalize();
 		result->texcoord = (1 - u -v)*this->t0[min_index] + u*this->t1[min_index] + v*this->t2[min_index];
-		result->hit = true;
-		result->material = this->materials[min_index];
+		*material = this->materials[min_index];
+
+		return true;
 	}
+
+	return false;
 }

@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <time.h>
 #include <algorithm>
+#include "data/data.h"
 
 AccelSpheres::AccelSpheres()
 {
@@ -55,15 +56,12 @@ bool AccelSpheres::occlude(Ray* ray)
 	return false;
 }
 
-void AccelSpheres::intersect(Ray* ray, Result *result)
+bool AccelSpheres::intersect(Ray* ray, Result *result, Material** material)
 {
 	Sphere* s;
 	float min_distance = 1000000;
 	Eigen::Vector3f *Rd, *Ro, X;
 	float a, b, c, disc, t0, t1, distance;
-	
-	result->hit = false;
-	
 
 	for (unsigned int i = 0; i < this->spheres.size(); i++) {
 		s = this->spheres[i];
@@ -97,8 +95,11 @@ void AccelSpheres::intersect(Ray* ray, Result *result)
 			//result->normal.normalize();
 			//result->position = s->position + result->normal * s->radius;
 			min_distance = distance;
-			result->hit = true;
-			result->material = s->material;
+			*material = s->material;
+
+			return true;
 		}	
 	}
+
+	return false;
 }

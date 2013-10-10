@@ -26,11 +26,9 @@ struct Material{
 };
 
 struct Result{
-	bool hit;
 	Eigen::Vector3f position;
 	Eigen::Vector3f normal;
 	Eigen::Vector2f texcoord;
-	Material *material;
 };
 
 struct Light{

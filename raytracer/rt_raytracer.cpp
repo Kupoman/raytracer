@@ -36,7 +36,7 @@ void RayTracer::addMesh(Mesh *mesh)
 	this->meshes->addMesh(mesh);
 }
 
-void RayTracer::shade(const Scene& scene, Ray *ray, Result* result, Eigen::Vector3f *color, int pass)
+void RayTracer::shade(const Scene& scene, Ray *ray, Result* result, Material* material, Eigen::Vector3f *color, int pass)
 {
 
 	if (pass < this->bounces) {
@@ -49,7 +49,15 @@ void RayTracer::shade(const Scene& scene, Ray *ray, Result* result, Eigen::Vecto
 		Eigen::Vector3f N = result->normal;
 		Eigen::Vector2f texcoord = result->texcoord;
 		Eigen::Vector3f I = *ray->getDirection();
-		Material* material = result->material;
+
+		float ref = material->reflectivity;
+		float alpha = material->alpha;
+		Eigen::Vector3f diff_color = material->diffuse_color;
+		Eigen::Vector3f spec_color = material->specular_color;
+		if (material->texture) {
+			diff_color = material->texture->lookup(texcoord(0), texcoord(1));
+		}
+
 
 
 		if (!this->photon_map) {
@@ -65,8 +73,7 @@ void RayTracer::shade(const Scene& scene, Ray *ray, Result* result, Eigen::Vecto
 				/* Shadow */
 				if (this->do_shadows) {
 					Ray light_ray = Ray(V+N*bias, L);
-					this->meshes->intersect(&light_ray, result);
-					if (result->hit) {
+					if (this->meshes->intersect(&light_ray, result, NULL)) {
 						float distance = (result->position - V).norm();
 						if (distance < L.norm()) {
 							shadow = std::max(shadow-0.4, 0.0);
@@ -86,9 +93,8 @@ void RayTracer::shade(const Scene& scene, Ray *ray, Result* result, Eigen::Vecto
 		if (material->reflectivity > 0) {
 			Eigen::Vector3f R = I - 2 * I.dot(N) * N;
 			Ray ref_ray = Ray(V, R);
-			this->meshes->intersect(&ref_ray, result);
-			if (result->hit)
-				shade(scene, &ref_ray, result, &ref_color, pass+1);
+			if (this->meshes->intersect(&ref_ray, result, &material))
+				shade(scene, &ref_ray, result, material, &ref_color, pass+1);
 		}
 
 		/* Refraction */
@@ -99,17 +105,8 @@ void RayTracer::shade(const Scene& scene, Ray *ray, Result* result, Eigen::Vecto
 			T -= N * sqrt(1 - ((1 - I.dot(N)*I.dot(N)))/IoR*IoR);
 			Ray refract_ray = Ray(V, T);
 
-			this->meshes->intersect(&refract_ray, result);
-			if (result->hit)
-				shade(scene, &refract_ray, result, &refraction_color, pass+1);
-		}
-
-		float ref = material->reflectivity;
-		float alpha = material->alpha;
-		Eigen::Vector3f diff_color = material->diffuse_color;
-		Eigen::Vector3f spec_color = material->specular_color;
-		if (material->texture) {
-			diff_color = material->texture->lookup(texcoord(0), texcoord(1));
+			if (this->meshes->intersect(&refract_ray, result, &material))
+				shade(scene, &refract_ray, result, material, &refraction_color, pass+1);
 		}
 
 		Eigen::Vector3f light = Eigen::Vector3f(lambert, lambert, lambert);
@@ -128,12 +125,12 @@ void RayTracer::renderScene(const Scene& scene, int width, int height, unsigned 
 	}
 
 	Ray* screenRays = scene.camera->getScreenRays();
+	Material* material;
 	for (int i = 0; i < width*height; i++) {
 		Eigen::Vector3f result;
 		Result hitResult;
-		this->meshes->intersect(&screenRays[i], &hitResult);
-		if (hitResult.hit) {
-			shade(scene, &screenRays[i], &hitResult, &result, 0);
+		if (this->meshes->intersect(&screenRays[i], &hitResult, &material)) {
+			shade(scene, &screenRays[i], &hitResult, material, &result, 0);
 			color[4*i+0] = (unsigned char)(std::min((int)result(0), 255));
 			color[4*i+1] = (unsigned char)(std::min((int)result(1), 255));
 			color[4*i+2] = (unsigned char)(std::min((int)result(2), 255));

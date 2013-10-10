@@ -20,7 +20,7 @@ public:
 	virtual void addMesh(Mesh* mesh);
 	virtual void update();
 	virtual bool occlude(class Ray* ray);
-	virtual void intersect(class Ray* ray, Result* result);
+	virtual bool intersect(class Ray* ray, Result* result, Material **material);
 };
 
 #endif

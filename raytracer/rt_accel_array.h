@@ -4,7 +4,6 @@
 #include <vector>
 #include "Eigen/Dense"
 #include "rt_iaccel.h"
-#include "data/data.h"
 
 class AccelArray : public IAccel
 {
@@ -21,13 +20,13 @@ class AccelArray : public IAccel
 	std::vector<Eigen::Vector3f> e2;
 	std::vector<unsigned int> material;
 
-	std::vector<Material*> materials;
+	std::vector<struct Material*> materials;
 public:
 	AccelArray();
 	virtual void addMesh(Mesh* mesh);
 	virtual void update();
 	virtual bool occlude(class Ray* ray);
-	virtual void intersect(class Ray* ray, Result* result);
+	virtual bool intersect(class Ray* ray, struct Result* result, Material **material);
 };
 
 #endif
