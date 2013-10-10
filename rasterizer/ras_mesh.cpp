@@ -64,10 +64,12 @@ RasMesh::~RasMesh()
 	delete [] this->indices;
 }
 
-float* RasMesh::getMaterialDiffColor()
+void RasMesh::getMaterialDiffColor(float data[3])
 {
 	Eigen::Vector3f color = this->material->diffuse_color / 255.0;
-	return color.data();
+	data[0] = color[0];
+	data[1] = color[1];
+	data[2] = color[2];
 }
 
 class Texture* RasMesh::getMaterialTexture()

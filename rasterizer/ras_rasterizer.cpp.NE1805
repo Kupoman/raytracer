@@ -119,7 +119,6 @@ static void projectionFromCamera(Camera* camera, float mat[4][4])
 
 void Rasterizer::beginFrame()
 {
-	//glGetError();
 	if (this->camera) {
 		projectionFromCamera(this->camera, this->proj_mat);
 
@@ -135,11 +134,11 @@ void Rasterizer::beginFrame()
 			this->normal_transfer_buffer = new Eigen::Vector3f[this->frame_width * this->frame_height];
 		}
 	}
-//	fprintf(stderr, "%s\n", gluErrorString(glGetError()));
 }
 
 void Rasterizer::drawMeshes()
 {
+	glEnable(GL_DEPTH_TEST);
 	glClearColor(0.3f,0.3f,0.3f,1.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -165,10 +164,7 @@ void Rasterizer::drawMeshes()
 		mesh = this->meshes[i];
 
 		loc = glGetUniformLocation(this->shader_programs["MESH"], "material_color");
-		float color[3];
-		mesh->getMaterialDiffColor(color);
-		glUniform3fv(loc, 1, color);
-
+		glUniform3fv(loc, 1, mesh->getMaterialDiffColor());
 
 		loc = glGetUniformLocation(this->shader_programs["MESH"], "material_textured");
 		glUniform1i(loc, mesh->getMaterialTexture() != NULL);
@@ -236,7 +232,6 @@ void Rasterizer::drawPrepass()
 
 	glBindFramebuffer(GL_FRAMEBUFFER, this->fbo_prepass);
 
-	glEnable(GL_DEPTH_TEST);
 	glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 
 	glUseProgram(this->shader_programs["PREPASS"]);
@@ -355,8 +350,7 @@ void Rasterizer::drawFullscreenQuad()
 
 void Rasterizer::displayImageData(unsigned char *pixels)
 {
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-	glDrawPixels(this->frame_width, this->frame_height, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+//	glDrawPixels(this->frame_width, this->frame_height, GL_RGB, GL_UNSIGNED_BYTE, pixels);
 }
 
 void Rasterizer::getRayTraceData(int *count, Eigen::Vector3f **positions, Eigen::Vector3f **normals)

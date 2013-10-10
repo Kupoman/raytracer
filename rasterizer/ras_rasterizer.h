@@ -57,6 +57,7 @@ public:
 	void drawLights(std::vector<Light*> lights);
 	void drawMeshes();
 
+	void displayImageData(unsigned char *pixels);
 	void getRayTraceData(int *count, Eigen::Vector3f **positions, Eigen::Vector3f **normals);
 };
 
