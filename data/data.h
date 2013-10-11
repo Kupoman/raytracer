@@ -25,6 +25,7 @@ struct Material{
 	Texture *texture;
 };
 
+typedef std::pair<struct Material*, int> ResultOffset;
 struct Result{
 	Eigen::Vector3f position;
 	Eigen::Vector3f normal;

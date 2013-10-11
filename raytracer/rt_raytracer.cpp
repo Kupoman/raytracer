@@ -9,6 +9,10 @@
 
 #include "rt_accel_array.h"
 
+#include <stdio.h>
+#include <map>
+#include <vector>
+
 RayTracer::RayTracer()
 {
 	this->bounces = 2;
@@ -143,4 +147,40 @@ void RayTracer::renderScene(const Scene& scene, int width, int height, unsigned 
 			color[4*i+3] = 0;
 		}
 	}
+}
+
+typedef std::map<Material*, std::vector<Result> > ResultMap;
+void RayTracer::processRays(const Camera& camera, int count, Eigen::Vector3f *positions, Eigen::Vector3f *normals, Result **results, ResultOffset **result_offsets)
+{
+	Ray ray;
+	Eigen::Vector3f direction;
+
+	Result result;
+	Material *material;
+
+	ResultMap result_map;
+
+	for (int i = 0; i < count; i++) {
+		direction = positions[i] - 2 * positions[i].dot(normals[i]) * normals[i];
+
+		// Needs to be multiplied by the inverse view matrix!
+		ray.setOrigin(positions[i]);
+		ray.setDirection(direction);
+
+		this->meshes->intersect(&ray, &result, &material);
+		result_map[material].push_back(Result(result));
+	}
+
+	int offset = 0;
+	for (ResultMap::iterator iter = result_map.begin(); iter != result_map.end(); iter++) {
+		material = iter->first;
+		std::vector<Result> points = iter->second;
+		this->result_vec.insert(result_vec.end(), points.begin(), points.end());
+		this->offset_vec.push_back(std::pair<Material*, int>(material, offset));
+
+		offset += points.size();
+	}
+
+	*results = &this->result_vec[0];
+	*result_offsets = &this->offset_vec[0];
 }

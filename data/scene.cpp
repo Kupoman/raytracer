@@ -41,10 +41,13 @@ void Scene::draw(unsigned char *output)
 {
 	int count;
 	Eigen::Vector3f *positions, *normals;
+	Result *results;
+	ResultOffset *result_offsets;
+
 	this->rasterizer->beginFrame();
 	this->rasterizer->drawPrepass();
 	this->rasterizer->drawLights(this->lights);
 	this->rasterizer->drawMeshes();
 	this->rasterizer->getRayTraceData(&count, &positions, &normals);
-	//this->raytracer->renderScene(*this, this->camera->getWidth(), this->camera->getHeight(), output);
+	this->raytracer->processRays(*this->camera, count, positions, normals, &results, &result_offsets);
 }
