@@ -27,6 +27,11 @@ void Ray::setOrigin(float x, float y, float z)
 	(*this->origin)(2) = z;
 }
 
+void Ray::setOrigin(Eigen::Vector3f vec)
+{
+	*this->origin = vec;
+}
+
 void Ray::setDirection(float x, float y, float z)
 {
 	(*this->direction)(0) = x;
@@ -34,4 +39,9 @@ void Ray::setDirection(float x, float y, float z)
 	(*this->direction)(2) = z;
 	
 	this->direction->normalize();
+}
+
+void Ray::setDirection(Eigen::Vector3f vec)
+{
+	*this->direction = vec;
 }
