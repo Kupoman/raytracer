@@ -35,7 +35,7 @@ public:
 	void addMesh(struct Mesh* mesh);
 
 	void renderScene(const class Scene& scene, int width, int height, unsigned char *color);
-	void processRays(const class Camera& camera, int count, Eigen::Vector3f* positions, Eigen::Vector3f* normals, Result **results, ResultOffset **result_offsets);
+	void processRays(const class Camera& camera, int count, Eigen::Vector3f* positions, Eigen::Vector3f* normals, Result **results, ResultOffset **result_offsets, int *out_count);
 };
 
 #endif

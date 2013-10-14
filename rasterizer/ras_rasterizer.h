@@ -5,6 +5,8 @@
 #include <map>
 #include <string>
 
+#include "data/data.h"
+
 #include "Eigen/Dense"
 
 class Camera;
@@ -14,7 +16,7 @@ struct Light;
 class Rasterizer
 {
 private:
-	class Camera* camera;
+	Camera* camera;
 	int frame_width, frame_height;
 
 	float proj_mat[4][4];
@@ -40,10 +42,14 @@ private:
 
 	void initPrepass();
 	void initLightPass();
+	void initRayDataPass();
 
 	unsigned int vbo_quad;
 	unsigned int vao_quad;
 	void drawFullscreenQuad();
+
+	unsigned int vbo_raydata;
+	unsigned int vao_raydata;
 
 public:
 	Rasterizer();
@@ -59,6 +65,7 @@ public:
 
 	void displayImageData(unsigned char *pixels);
 	void getRayTraceData(int *count, Eigen::Vector3f **positions, Eigen::Vector3f **normals);
+	void drawRayData(Result *results, ResultOffset *result_offsets, int count);
 };
 
 #endif

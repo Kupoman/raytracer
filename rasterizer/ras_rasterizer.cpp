@@ -10,6 +10,7 @@
 
 #include "ras_rasterizer.h"
 #include "ras_mesh.h"
+#include "ras_vertex.h"
 
 Rasterizer::Rasterizer()
 {
@@ -18,6 +19,7 @@ Rasterizer::Rasterizer()
 
 	this->prepass_color0_target = 0;
 	this->prepass_depth_target = 0;
+	this->vao_raydata = 0;
 }
 
 Rasterizer::~Rasterizer()
@@ -383,14 +385,53 @@ void Rasterizer::getRayTraceData(int *count, Eigen::Vector3f **positions, Eigen:
 	for (int i = 0; i < *count; i++) {
 		int idx = frag_idx[i];
 
-		(*positions)[i][0] = this->prepass_color0_buffer[idx*4 + 0];
-		(*positions)[i][1] = this->prepass_color0_buffer[idx*4 + 1];
-		(*positions)[i][2] = this->prepass_color0_buffer[idx*4 + 2];
+		(*normals)[i][0] = this->prepass_color0_buffer[idx*4 + 0];
+		(*normals)[i][1] = this->prepass_color0_buffer[idx*4 + 1];
+		(*normals)[i][2] = this->prepass_color0_buffer[idx*4 + 2];
 
-		(*normals)[i][0] = this->prepass_color1_buffer[idx*3 + 0];
-		(*normals)[i][1] = this->prepass_color1_buffer[idx*3 + 1];
-		(*normals)[i][2] = this->prepass_color1_buffer[idx*3 + 2];
+		(*positions)[i][0] = this->prepass_color1_buffer[idx*3 + 0];
+		(*positions)[i][1] = this->prepass_color1_buffer[idx*3 + 1];
+		(*positions)[i][2] = this->prepass_color1_buffer[idx*3 + 2];
 	}
 
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
+void Rasterizer::drawRayData(Result *results, ResultOffset *result_offsets, int count)
+{
+	if (!this->vao_raydata) {
+		glGenVertexArrays(1, &this->vao_raydata);
+		glBindVertexArray(this->vao_raydata);
+
+		glGenBuffers(1, &this->vbo_raydata);
+		glBindBuffer(GL_ARRAY_BUFFER, this->vbo_raydata);
+
+		glEnableVertexAttribArray(0);
+		glEnableVertexAttribArray(1);
+		glEnableVertexAttribArray(2);
+
+		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(RasVertex), (void*)offsetof(RasVertex, position));
+		glVertexAttribPointer(1, 3, GL_FLOAT, GL_TRUE, sizeof(RasVertex), (void*)offsetof(RasVertex, normal));
+		glVertexAttribPointer(2, 2, GL_FLOAT, GL_TRUE, sizeof(RasVertex), (void*)offsetof(RasVertex, uv));
+
+		glBufferData(GL_ARRAY_BUFFER, this->frame_height*this->frame_width*sizeof(RasVertex), NULL, GL_STREAM_DRAW);
+	}
+	else {
+		glBindVertexArray(this->vao_raydata);
+	}
+
+	glDisable(GL_DEPTH_TEST);
+	glUseProgram(this->shader_programs["MESH"]);
+
+	int loc = glGetUniformLocation(this->shader_programs["MESH"], "material_color");
+	float color[3] = {0.5, 1.0, 0.0};
+	glUniform3fv(loc, 1, color);
+
+	loc = glGetUniformLocation(this->shader_programs["MESH"], "material_textured");
+	glUniform1i(loc, 0);
+
+	glBufferSubData(GL_ARRAY_BUFFER, 0, count * sizeof(RasVertex), results);
+	glDrawArrays(GL_POINTS, 0, count);
+
+	glUseProgram(0);
 }

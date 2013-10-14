@@ -49,5 +49,6 @@ void Scene::draw(unsigned char *output)
 	this->rasterizer->drawLights(this->lights);
 	this->rasterizer->drawMeshes();
 	this->rasterizer->getRayTraceData(&count, &positions, &normals);
-	this->raytracer->processRays(*this->camera, count, positions, normals, &results, &result_offsets);
+	this->raytracer->processRays(*this->camera, count, positions, normals, &results, &result_offsets, &count);
+	this->rasterizer->drawRayData(results, result_offsets, count);
 }

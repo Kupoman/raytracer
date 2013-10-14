@@ -150,13 +150,13 @@ void RayTracer::renderScene(const Scene& scene, int width, int height, unsigned 
 }
 
 typedef std::map<Material*, std::vector<Result> > ResultMap;
-void RayTracer::processRays(const Camera& camera, int count, Eigen::Vector3f *positions, Eigen::Vector3f *normals, Result **results, ResultOffset **result_offsets)
+void RayTracer::processRays(const Camera& camera, int count, Eigen::Vector3f *positions, Eigen::Vector3f *normals, Result **results, ResultOffset **result_offsets, int *out_count)
 {
 	Ray ray;
 	Eigen::Vector3f direction;
 
 	Result result;
-	Material *material;
+	Material *material = NULL;
 
 	ResultMap result_map;
 
@@ -167,8 +167,10 @@ void RayTracer::processRays(const Camera& camera, int count, Eigen::Vector3f *po
 		ray.setOrigin(positions[i]);
 		ray.setDirection(direction);
 
-		this->meshes->intersect(&ray, &result, &material);
-		result_map[material].push_back(Result(result));
+		if (this->meshes->intersect(&ray, &result, &material)) {
+			result.position = *ray.getOrigin();
+			result_map[material].push_back(Result(result));
+		}
 	}
 
 	int offset = 0;
@@ -181,6 +183,7 @@ void RayTracer::processRays(const Camera& camera, int count, Eigen::Vector3f *po
 		offset += points.size();
 	}
 
+	*out_count = offset;
 	*results = &this->result_vec[0];
 	*result_offsets = &this->offset_vec[0];
 }
