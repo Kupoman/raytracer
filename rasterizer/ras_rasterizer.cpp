@@ -361,20 +361,18 @@ void Rasterizer::displayImageData(unsigned char *pixels)
 
 void Rasterizer::getRayTraceData(int *count, Eigen::Vector3f **positions, Eigen::Vector3f **normals)
 {
-	return;
 	*count = 0;
 	std::vector<int> frag_idx;
 
 	glBindFramebuffer(GL_FRAMEBUFFER, this->fbo_prepass);
 	glReadBuffer(GL_COLOR_ATTACHMENT0);
 	glReadPixels(0, 0, this->frame_width, this->frame_height, GL_RGBA, GL_FLOAT, this->prepass_color0_buffer);
-	for (int i = 0; i < *count; i++) {
+	for (int i = 0; i < this->frame_width * this->frame_height; i++) {
 		if (this->prepass_color0_buffer[i*4 +3] > 0.0) {
 			frag_idx.push_back(i);
 		}
 	}
 	*count = frag_idx.size();
-
 
 	glReadBuffer(GL_COLOR_ATTACHMENT1);
 	glReadPixels(0, 0, this->frame_width, this->frame_height, GL_RGB, GL_FLOAT, this->prepass_color1_buffer);
