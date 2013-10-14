@@ -48,8 +48,8 @@ bool AccelArray::occlude(Ray* ray)
 	Eigen::Vector3f E1, E2, T, P, Q, tuv;
 	float det;
 
-	Eigen::Vector3f D = *ray->getDirection();
-	Eigen::Vector3f O = *ray->getOrigin();
+	Eigen::Vector3f D = ray->direction;
+	Eigen::Vector3f O = ray->origin;
 
 	for (int i = 0; i < this->v0.size(); ++i) {
 
@@ -79,8 +79,8 @@ bool AccelArray::intersect(Ray* ray, Result *result, Material **material)
 	Eigen::Vector3f E1, E2, T, P, Q, tuv;
 	float det, inv_det, t, u, v;
 
-	Eigen::Vector3f D = *ray->getDirection();
-	Eigen::Vector3f O = *ray->getOrigin();
+	Eigen::Vector3f D = ray->direction;
+	Eigen::Vector3f O = ray->origin;
 
 	float min_t = 1000000, min_u, min_v;
 	int min_index = -1;

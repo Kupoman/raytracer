@@ -40,7 +40,7 @@ void PhotonMap::emit_photon(IAccel *meshes, Ray* r, Eigen::Vector3f energy, floa
 	if (!meshes->intersect(r, &result, &material)) return;
 
 //	float dist = 0;
-	float dist = (result.position - *(r->getOrigin())).norm();
+	float dist = (result.position - r->origin).norm();
 	if (dist > max_dist) return;
 //	energy *=  (max_dist - dist) / max_dist;
 
@@ -50,7 +50,7 @@ void PhotonMap::emit_photon(IAccel *meshes, Ray* r, Eigen::Vector3f energy, floa
 		Photon* p = new Photon();
 		p->position = result.position;
 		p->energy = energy;// * (1-diff_ref);
-		p->direction = *r->getDirection();
+		p->direction = r->direction;
 		this->photons.push_back(p);
 	}
 	else {

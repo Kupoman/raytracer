@@ -52,7 +52,7 @@ void RayTracer::shade(const Scene& scene, Ray *ray, Result* result, Material* ma
 		Eigen::Vector3f V = result->position;
 		Eigen::Vector3f N = result->normal;
 		Eigen::Vector2f texcoord = result->texcoord;
-		Eigen::Vector3f I = *ray->getDirection();
+		Eigen::Vector3f I = ray->direction;
 
 		float ref = material->reflectivity;
 		float alpha = material->alpha;
@@ -115,7 +115,7 @@ void RayTracer::shade(const Scene& scene, Ray *ray, Result* result, Material* ma
 
 		Eigen::Vector3f light = Eigen::Vector3f(lambert, lambert, lambert);
 		if (this->photon_map) {
-			light = photon_map->radiance_estimate(result->position, *ray->getDirection(), result->normal, this->photon_estimate, this->photon_radius);
+			light = photon_map->radiance_estimate(result->position, ray->direction, result->normal, this->photon_estimate, this->photon_radius);
 		}
 		*color = shadow * light.array() * ((1.0-ref-alpha)*diff_color + ref*ref_color + alpha*refraction_color).array();
 	}
@@ -164,11 +164,11 @@ void RayTracer::processRays(const Camera& camera, int count, Eigen::Vector3f *po
 		direction = positions[i] - 2 * positions[i].dot(normals[i]) * normals[i];
 
 		// Needs to be multiplied by the inverse view matrix!
-		ray.setOrigin(positions[i]);
-		ray.setDirection(direction);
+		ray.origin = positions[i];
+		ray.direction = direction;
 
 		if (this->meshes->intersect(&ray, &result, &material)) {
-			result.position = *ray.getOrigin();
+			result.position = ray.origin;
 			result_map[material].push_back(Result(result));
 		}
 	}
