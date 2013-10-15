@@ -4,7 +4,6 @@
 #include <iostream>
 
 #include "rt_photon_map.h"
-#include "rt_ray.h"
 #include "rt_iaccel.h"
 #include "data/scene.h"
 #include "Eigen/Dense"
@@ -32,15 +31,14 @@ public:
 
 void PhotonMap::emit_photon(IAccel *meshes, Ray* r, Eigen::Vector3f energy, float max_dist, int pass)
 {
-	Result result;
 	Material *material;
 
 	if (pass > 1) return;
 
-	if (!meshes->intersect(r, &result, &material)) return;
+	if (!meshes->intersect(r, &material)) return;
 
 //	float dist = 0;
-	float dist = (result.position - r->origin).norm();
+	float dist = (r->position - r->origin).norm();
 	if (dist > max_dist) return;
 //	energy *=  (max_dist - dist) / max_dist;
 
@@ -48,20 +46,20 @@ void PhotonMap::emit_photon(IAccel *meshes, Ray* r, Eigen::Vector3f energy, floa
 
 	if (((float)rand())/RAND_MAX < absorb) {
 		Photon* p = new Photon();
-		p->position = result.position;
+		p->position = r->position;
 		p->energy = energy;// * (1-diff_ref);
 		p->direction = r->direction;
 		this->photons.push_back(p);
 	}
 	else {
-		r->setOrigin(result.position(0), result.position(1), result.position(2));
+		r->origin = Eigen::Vector3f(r->position(0), r->position(1), r->position(2));
 		Eigen::Vector3f dir = Eigen::Vector3f(1, 1, 1);
-		while (dir.dot(dir) > 1 || dir.dot(result.normal) < 0) {
+		while (dir.dot(dir) > 1 || dir.dot(r->normal) < 0) {
 			dir(0) = rand() / rmax_2 - 1;
 			dir(1) = rand() / rmax_2 - 1;
 			dir(2) = rand() / rmax_2 - 1;
 		}
-		r->setDirection(dir(0), dir(1), dir(2));
+		r->direction = Eigen::Vector3f(dir(0), dir(1), dir(2));
 		energy = material->diffuse_color * (energy.norm()/255);
 //		std::cout << energy.norm()/255 <<std::endl;
 		//energy *= diff_ref;
@@ -106,8 +104,8 @@ void PhotonMap::generate(const Scene* scene, IAccel *meshes, int count)
 			j++;
 			
 
-			ray.setOrigin(light->position(0), light->position(1), light->position(2));
-			ray.setDirection(dir(0), dir(1), dir(2));
+			ray.origin = Eigen::Vector3f(light->position(0), light->position(1), light->position(2));
+			ray.direction = Eigen::Vector3f(dir(0), dir(1), dir(2));
 
 			this->emit_photon(meshes, &ray, energy, max_dist, 0);
 			continue;

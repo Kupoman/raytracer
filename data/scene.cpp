@@ -41,7 +41,7 @@ void Scene::draw(unsigned char *output)
 {
 	int count, material_count;
 	Eigen::Vector3f *positions, *normals;
-	Result *results;
+	Ray *results;
 	ResultOffset *result_offsets;
 
 	this->rasterizer->beginFrame();

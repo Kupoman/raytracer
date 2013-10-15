@@ -1,5 +1,4 @@
 #include "rt_accel_array.h"
-#include "rt_ray.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -73,7 +72,7 @@ bool AccelArray::occlude(Ray* ray)
 	return false;
 }
 
-bool AccelArray::intersect(Ray* ray, Result *result, Material **material)
+bool AccelArray::intersect(Ray* ray, Material **material)
 {
 
 	Eigen::Vector3f E1, E2, T, P, Q, tuv;
@@ -125,10 +124,10 @@ bool AccelArray::intersect(Ray* ray, Result *result, Material **material)
 	if (min_index != -1) {
 		u = min_u;
 		v = min_v;
-		result->position = (1 - u -v)*this->v0[min_index] + u*this->v1[min_index] + v*this->v2[min_index];
-		result->normal = (1 - u -v)*this->n0[min_index] + u*this->n1[min_index] + v*this->n2[min_index];
-		result->normal.normalize();
-		result->texcoord = (1 - u -v)*this->t0[min_index] + u*this->t1[min_index] + v*this->t2[min_index];
+		ray->position = (1 - u -v)*this->v0[min_index] + u*this->v1[min_index] + v*this->v2[min_index];
+		ray->normal = (1 - u -v)*this->n0[min_index] + u*this->n1[min_index] + v*this->n2[min_index];
+		ray->normal.normalize();
+		ray->texcoord = (1 - u -v)*this->t0[min_index] + u*this->t1[min_index] + v*this->t2[min_index];
 		*material = this->materials[min_index];
 
 		return true;

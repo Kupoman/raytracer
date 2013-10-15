@@ -1,5 +1,5 @@
 #include "camera.h"
-#include "raytracer/rt_ray.h"
+#include "data/data.h"
 
 #include <math.h>
 
@@ -27,12 +27,12 @@ Ray* Camera::getScreenRays()
 	for (int y = 0; y < this->height; y++) {
 		for (int x = 0; x < this->width; x++) {
 			i = this->width*y + x;
-			rays[i].setOrigin(0, 0, 0);
+			rays[i].origin = Eigen::Vector3f(0, 0, 0);
 
 			dirX = 2 * ((x+0.5) / this->width) - 1;
 			dirY = 2 * ((y+0.5) / this->height) - 1;
 			dirX *= aspect;
-			rays[i].setDirection(dirX*this->fov, dirY*this->fov, -1);
+			rays[i].direction = Eigen::Vector3f(dirX*this->fov, dirY*this->fov, -1);
 		}
 	}
 	return rays;

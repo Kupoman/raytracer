@@ -26,10 +26,19 @@ struct Material{
 };
 
 typedef std::pair<struct Material*, int> ResultOffset;
-struct Result{
+//struct Result{
+//	Eigen::Vector3f position;
+//	Eigen::Vector3f normal;
+//	Eigen::Vector2f texcoord;
+//};
+struct Ray
+{
+	Eigen::Vector3f origin;
+	Eigen::Vector3f direction;
 	Eigen::Vector3f position;
 	Eigen::Vector3f normal;
 	Eigen::Vector2f texcoord;
+	float pad[2];
 };
 
 struct Light{

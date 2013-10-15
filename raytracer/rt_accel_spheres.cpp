@@ -1,5 +1,4 @@
 #include "rt_accel_spheres.h"
-#include "rt_ray.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -56,7 +55,7 @@ bool AccelSpheres::occlude(Ray* ray)
 	return false;
 }
 
-bool AccelSpheres::intersect(Ray* ray, Result *result, Material** material)
+bool AccelSpheres::intersect(Ray* ray, Material** material)
 {
 	Sphere* s;
 	float min_distance = 1000000;
@@ -90,8 +89,8 @@ bool AccelSpheres::intersect(Ray* ray, Result *result, Material** material)
 		X = (Ro) + (Rd)*t0;
 		distance = X.squaredNorm();
 		if (distance < min_distance) {
-			result->position = X;
-			result->normal = (X - s->position) / s->radius;
+			ray->position = X;
+			ray->normal = (X - s->position) / s->radius;
 			//result->normal.normalize();
 			//result->position = s->position + result->normal * s->radius;
 			min_distance = distance;

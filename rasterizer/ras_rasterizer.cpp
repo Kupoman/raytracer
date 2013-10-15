@@ -427,7 +427,7 @@ void Rasterizer::getRayTraceData(int *count, Eigen::Vector3f **positions, Eigen:
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
-void Rasterizer::drawRayData(Result *results, ResultOffset *result_offsets, int result_count, int material_count)
+void Rasterizer::drawRayData(Ray *results, ResultOffset *result_offsets, int result_count, int material_count)
 {
 	if (!this->vao_raydata) {
 		glGenVertexArrays(1, &this->vao_raydata);
@@ -440,11 +440,11 @@ void Rasterizer::drawRayData(Result *results, ResultOffset *result_offsets, int 
 		glEnableVertexAttribArray(1);
 		glEnableVertexAttribArray(2);
 
-		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(RasVertex), (void*)offsetof(RasVertex, position));
-		glVertexAttribPointer(1, 3, GL_FLOAT, GL_TRUE, sizeof(RasVertex), (void*)offsetof(RasVertex, normal));
-		glVertexAttribPointer(2, 2, GL_FLOAT, GL_TRUE, sizeof(RasVertex), (void*)offsetof(RasVertex, uv));
+		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Ray), (void*)offsetof(Ray, origin));
+		glVertexAttribPointer(1, 3, GL_FLOAT, GL_TRUE, sizeof(Ray), (void*)offsetof(Ray, normal));
+		glVertexAttribPointer(2, 2, GL_FLOAT, GL_TRUE, sizeof(Ray), (void*)offsetof(Ray, texcoord));
 
-		glBufferData(GL_ARRAY_BUFFER, this->frame_height*this->frame_width*sizeof(RasVertex), NULL, GL_STREAM_DRAW);
+		glBufferData(GL_ARRAY_BUFFER, this->frame_height*this->frame_width*sizeof(Ray), NULL, GL_STREAM_DRAW);
 	}
 	else {
 		glBindVertexArray(this->vao_raydata);
@@ -454,7 +454,7 @@ void Rasterizer::drawRayData(Result *results, ResultOffset *result_offsets, int 
 	glDisable(GL_DEPTH_TEST);
 	glUseProgram(this->shader_programs["MESH"]);
 
-	glBufferSubData(GL_ARRAY_BUFFER, 0, result_count * sizeof(RasVertex), results);
+	glBufferSubData(GL_ARRAY_BUFFER, 0, result_count * sizeof(Ray), results);
 
 	Material *material;
 	float color[3];

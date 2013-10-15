@@ -4,7 +4,6 @@
 
 #include "rt_raytracer.h"
 #include "rt_photon_map.h"
-#include "rt_ray.h"
 #include "rt_iaccel.h"
 
 #include "rt_accel_array.h"
@@ -40,7 +39,7 @@ void RayTracer::addMesh(Mesh *mesh)
 	this->meshes->addMesh(mesh);
 }
 
-void RayTracer::shade(const Scene& scene, Ray *ray, Result* result, Material* material, Eigen::Vector3f *color, int pass)
+void RayTracer::shade(const Scene& scene, Ray *ray, Material* material, Eigen::Vector3f *color, int pass)
 {
 
 	if (pass < this->bounces) {
@@ -49,9 +48,9 @@ void RayTracer::shade(const Scene& scene, Ray *ray, Result* result, Material* ma
 		float shadow = 1;
 		float specular = 0;
 
-		Eigen::Vector3f V = result->position;
-		Eigen::Vector3f N = result->normal;
-		Eigen::Vector2f texcoord = result->texcoord;
+		Eigen::Vector3f V = ray->position;
+		Eigen::Vector3f N = ray->normal;
+		Eigen::Vector2f texcoord = ray->texcoord;
 		Eigen::Vector3f I = ray->direction;
 
 		float ref = material->reflectivity;
@@ -76,9 +75,11 @@ void RayTracer::shade(const Scene& scene, Ray *ray, Result* result, Material* ma
 
 				/* Shadow */
 				if (this->do_shadows) {
-					Ray light_ray = Ray(V+N*bias, L);
-					if (this->meshes->intersect(&light_ray, result, NULL)) {
-						float distance = (result->position - V).norm();
+					Ray light_ray;
+					light_ray.origin = V+N*bias;
+					light_ray.direction = L;
+					if (this->meshes->intersect(&light_ray, NULL)) {
+						float distance = (ray->position - V).norm();
 						if (distance < L.norm()) {
 							shadow = std::max(shadow-0.4, 0.0);
 						}
@@ -96,9 +97,11 @@ void RayTracer::shade(const Scene& scene, Ray *ray, Result* result, Material* ma
 		Eigen::Vector3f ref_color = Eigen::Vector3f(0, 0, 0);
 		if (material->reflectivity > 0) {
 			Eigen::Vector3f R = I - 2 * I.dot(N) * N;
-			Ray ref_ray = Ray(V, R);
-			if (this->meshes->intersect(&ref_ray, result, &material))
-				shade(scene, &ref_ray, result, material, &ref_color, pass+1);
+			Ray ref_ray;
+			ref_ray.origin = V;
+			ref_ray.direction = R;
+			if (this->meshes->intersect(&ref_ray, &material))
+				shade(scene, &ref_ray, material, &ref_color, pass+1);
 		}
 
 		/* Refraction */
@@ -107,15 +110,17 @@ void RayTracer::shade(const Scene& scene, Ray *ray, Result* result, Material* ma
 			float IoR = material->ior;
 			Eigen::Vector3f T = (I - N * I.dot(N))/IoR;
 			T -= N * sqrt(1 - ((1 - I.dot(N)*I.dot(N)))/IoR*IoR);
-			Ray refract_ray = Ray(V, T);
+			Ray refract_ray;
+			refract_ray.origin = V;
+			refract_ray.direction = T;
 
-			if (this->meshes->intersect(&refract_ray, result, &material))
-				shade(scene, &refract_ray, result, material, &refraction_color, pass+1);
+			if (this->meshes->intersect(&refract_ray, &material))
+				shade(scene, &refract_ray, material, &refraction_color, pass+1);
 		}
 
 		Eigen::Vector3f light = Eigen::Vector3f(lambert, lambert, lambert);
 		if (this->photon_map) {
-			light = photon_map->radiance_estimate(result->position, ray->direction, result->normal, this->photon_estimate, this->photon_radius);
+			light = photon_map->radiance_estimate(ray->position, ray->direction, ray->normal, this->photon_estimate, this->photon_radius);
 		}
 		*color = shadow * light.array() * ((1.0-ref-alpha)*diff_color + ref*ref_color + alpha*refraction_color).array();
 	}
@@ -132,9 +137,8 @@ void RayTracer::renderScene(const Scene& scene, int width, int height, unsigned 
 	Material* material;
 	for (int i = 0; i < width*height; i++) {
 		Eigen::Vector3f result;
-		Result hitResult;
-		if (this->meshes->intersect(&screenRays[i], &hitResult, &material)) {
-			shade(scene, &screenRays[i], &hitResult, material, &result, 0);
+		if (this->meshes->intersect(&screenRays[i], &material)) {
+			shade(scene, &screenRays[i], material, &result, 0);
 			color[4*i+0] = (unsigned char)(std::min((int)result(0), 255));
 			color[4*i+1] = (unsigned char)(std::min((int)result(1), 255));
 			color[4*i+2] = (unsigned char)(std::min((int)result(2), 255));
@@ -149,13 +153,12 @@ void RayTracer::renderScene(const Scene& scene, int width, int height, unsigned 
 	}
 }
 
-typedef std::map<Material*, std::vector<Result> > ResultMap;
-void RayTracer::processRays(const Camera& camera, int count, Eigen::Vector3f *positions, Eigen::Vector3f *normals, Result **results, ResultOffset **result_offsets, int *out_result_count, int *out_material_count)
+typedef std::map<Material*, std::vector<Ray> > ResultMap;
+void RayTracer::processRays(const Camera& camera, int count, Eigen::Vector3f *positions, Eigen::Vector3f *normals, Ray **results, ResultOffset **result_offsets, int *out_result_count, int *out_material_count)
 {
 	Ray ray;
 	Eigen::Vector3f direction;
 
-	Result result;
 	Material *material = NULL;
 
 	ResultMap result_map;
@@ -170,19 +173,19 @@ void RayTracer::processRays(const Camera& camera, int count, Eigen::Vector3f *po
 		ray.direction = direction;
 		ray.origin = positions[i];
 
-		if (!this->meshes->intersect(&ray, &result, &material)) {
+		if (!this->meshes->intersect(&ray, &material)) {
 			material = NULL;
 		}
-		result.position = ray.origin;
-		result_map[material].push_back(Result(result));
+		//ray.position = ray.origin;
+		result_map[material].push_back(Ray(ray));
 	}
 
 	int offset = 0;
 	for (ResultMap::iterator iter = result_map.begin(); iter != result_map.end(); iter++) {
 		material = iter->first;
-		std::vector<Result> points = iter->second;
-		offset += points.size();
-		this->result_vec.insert(result_vec.end(), points.begin(), points.end());
+		std::vector<Ray> rays = iter->second;
+		offset += rays.size();
+		this->result_vec.insert(result_vec.end(), rays.begin(), rays.end());
 		this->offset_vec.push_back(std::pair<Material*, int>(material, offset));
 	}
 

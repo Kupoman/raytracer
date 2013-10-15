@@ -66,7 +66,7 @@ public:
 
 	void displayImageData(unsigned char *pixels);
 	void getRayTraceData(int *count, Eigen::Vector3f **positions, Eigen::Vector3f **normals);
-	void drawRayData(Result *results, ResultOffset *result_offsets, int result_count, int material_count);
+	void drawRayData(Ray *results, ResultOffset *result_offsets, int result_count, int material_count);
 };
 
 #endif
