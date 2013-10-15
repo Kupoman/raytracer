@@ -5,8 +5,6 @@
 
 class Ray
 {
-private:
-	float pad[2];
 public:
 	Eigen::Vector3f origin;
 	Eigen::Vector3f direction;
@@ -20,6 +18,8 @@ public:
 	
 	void setOrigin(float x, float y, float z);
 	void setDirection(float x, float y, float z);
+private:
+	float pad[2];
 };
 
 #endif

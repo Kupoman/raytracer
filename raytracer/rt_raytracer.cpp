@@ -150,7 +150,7 @@ void RayTracer::renderScene(const Scene& scene, int width, int height, unsigned 
 }
 
 typedef std::map<Material*, std::vector<Result> > ResultMap;
-void RayTracer::processRays(const Camera& camera, int count, Eigen::Vector3f *positions, Eigen::Vector3f *normals, Result **results, ResultOffset **result_offsets, int *out_count)
+void RayTracer::processRays(const Camera& camera, int count, Eigen::Vector3f *positions, Eigen::Vector3f *normals, Result **results, ResultOffset **result_offsets, int *out_result_count, int *out_material_count)
 {
 	Ray ray;
 	Eigen::Vector3f direction;
@@ -160,30 +160,34 @@ void RayTracer::processRays(const Camera& camera, int count, Eigen::Vector3f *po
 
 	ResultMap result_map;
 
+	this->result_vec.clear();
+	this->offset_vec.clear();
+
 	for (int i = 0; i < count; i++) {
 		direction = positions[i] - 2 * positions[i].dot(normals[i]) * normals[i];
 
 		// Needs to be multiplied by the inverse view matrix!
-		ray.origin = positions[i];
 		ray.direction = direction;
+		ray.origin = positions[i];
 
-		if (this->meshes->intersect(&ray, &result, &material)) {
-			result.position = ray.origin;
-			result_map[material].push_back(Result(result));
+		if (!this->meshes->intersect(&ray, &result, &material)) {
+			material = NULL;
 		}
+		result.position = ray.origin;
+		result_map[material].push_back(Result(result));
 	}
 
 	int offset = 0;
 	for (ResultMap::iterator iter = result_map.begin(); iter != result_map.end(); iter++) {
 		material = iter->first;
 		std::vector<Result> points = iter->second;
+		offset += points.size();
 		this->result_vec.insert(result_vec.end(), points.begin(), points.end());
 		this->offset_vec.push_back(std::pair<Material*, int>(material, offset));
-
-		offset += points.size();
 	}
 
-	*out_count = offset;
+	*out_result_count = this->result_vec.size();
+	*out_material_count = this->offset_vec.size();
 	*results = &this->result_vec[0];
 	*result_offsets = &this->offset_vec[0];
 }

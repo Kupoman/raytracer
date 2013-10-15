@@ -385,9 +385,9 @@ void Rasterizer::getRayTraceData(int *count, Eigen::Vector3f **positions, Eigen:
 	for (int i = 0; i < *count; i++) {
 		int idx = frag_idx[i];
 
-		(*normals)[i][0] = this->prepass_color0_buffer[idx*4 + 0];
-		(*normals)[i][1] = this->prepass_color0_buffer[idx*4 + 1];
-		(*normals)[i][2] = this->prepass_color0_buffer[idx*4 + 2];
+		(*normals)[i][0] = this->prepass_color0_buffer[idx*4 + 0] * 2.0 - 1.0;
+		(*normals)[i][1] = this->prepass_color0_buffer[idx*4 + 1] * 2.0 - 1.0;
+		(*normals)[i][2] = this->prepass_color0_buffer[idx*4 + 2] * 2.0 - 1.0;
 
 		(*positions)[i][0] = this->prepass_color1_buffer[idx*3 + 0];
 		(*positions)[i][1] = this->prepass_color1_buffer[idx*3 + 1];
@@ -397,7 +397,7 @@ void Rasterizer::getRayTraceData(int *count, Eigen::Vector3f **positions, Eigen:
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
-void Rasterizer::drawRayData(Result *results, ResultOffset *result_offsets, int count)
+void Rasterizer::drawRayData(Result *results, ResultOffset *result_offsets, int result_count, int material_count)
 {
 	if (!this->vao_raydata) {
 		glGenVertexArrays(1, &this->vao_raydata);
@@ -420,18 +420,37 @@ void Rasterizer::drawRayData(Result *results, ResultOffset *result_offsets, int 
 		glBindVertexArray(this->vao_raydata);
 	}
 
+//	glClear(GL_COLOR_BUFFER_BIT);
 	glDisable(GL_DEPTH_TEST);
 	glUseProgram(this->shader_programs["MESH"]);
 
-	int loc = glGetUniformLocation(this->shader_programs["MESH"], "material_color");
-	float color[3] = {0.5, 1.0, 0.0};
-	glUniform3fv(loc, 1, color);
+	glBufferSubData(GL_ARRAY_BUFFER, 0, result_count * sizeof(RasVertex), results);
 
-	loc = glGetUniformLocation(this->shader_programs["MESH"], "material_textured");
-	glUniform1i(loc, 0);
+	Material *material;
+	float color[3];
+	int start = 0;
+	for (int i = 0; i < material_count; i++) {
+		material = result_offsets[i].first;
 
-	glBufferSubData(GL_ARRAY_BUFFER, 0, count * sizeof(RasVertex), results);
-	glDrawArrays(GL_POINTS, 0, count);
+		if (!material) continue;
+
+		int loc = glGetUniformLocation(this->shader_programs["MESH"], "material_color");
+		color[0] = material->diffuse_color[0] / 255;
+		color[1] = material->diffuse_color[1] / 255;
+		color[2] = material->diffuse_color[2] / 255;
+		glUniform3fv(loc, 1, color);
+
+		loc = glGetUniformLocation(this->shader_programs["MESH"], "material_textured");
+		glUniform1i(loc, material->texture != NULL);
+
+		glActiveTexture(GL_TEXTURE4);
+		glBindTexture(GL_TEXTURE_2D, this->textures[material->texture]);
+		loc = glGetUniformLocation(this->shader_programs["MESH"], "texture_diffuse");
+		glUniform1i(loc, 4);
+
+		glDrawArrays(GL_POINTS, start, result_offsets[i].second);
+		start = result_offsets[i].second;
+	}
 
 	glUseProgram(0);
 }
