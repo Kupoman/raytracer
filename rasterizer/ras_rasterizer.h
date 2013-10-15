@@ -22,6 +22,7 @@ private:
 	float proj_mat[4][4];
 
 	std::vector<class RasMesh*> meshes;
+	std::vector<struct Light*> lights;
 
 	std::map<std::string, unsigned int> shader_programs;
 

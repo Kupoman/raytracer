@@ -162,6 +162,33 @@ void Rasterizer::drawMeshes()
 	loc = glGetUniformLocation(this->shader_programs["MESH"], "prepassBuffer0");
 	glUniform1i(loc, 1);
 
+	// Lights
+	char light_name[64];
+	Eigen::Vector3f color;
+
+	loc = glGetUniformLocation(this->shader_programs["MESH"], "lightCount");
+	glUniform1i(loc, this->lights.size());
+
+	for (int i = 0; i < this->lights.size(); i++) {
+		sprintf(light_name, "lights[%d].position", i);
+		loc = glGetUniformLocation(this->shader_programs["MESH"], light_name);
+		if (loc < 0) {
+			fprintf(stderr, "Out of Lights for %s\n", light_name);
+			break;
+		}
+		glUniform3fv(loc, 1, &this->lights[i]->position[0]);
+
+
+		sprintf(light_name, "lights[%d].energy", i);
+		loc = glGetUniformLocation(this->shader_programs["MESH"], light_name);
+		if (loc < 0) {
+			fprintf(stderr, "Out of Lights for %s\n", light_name);
+			break;
+		}
+		color = this->lights[i]->color * 1.0/255;
+		glUniform3fv(loc, 1, &color[0]);
+	}
+
 	RasMesh *mesh;
 	for (int i=0; i < this->meshes.size(); i++) {
 		mesh = this->meshes[i];
@@ -292,6 +319,9 @@ void Rasterizer::initLightPass()
 }
 void Rasterizer::drawLights(std::vector<Light*> lights)
 {
+	this->lights = lights;
+	return;
+
 	if (!this->fbo_lpass)
 		this->initLightPass();
 
