@@ -427,32 +427,58 @@ void Rasterizer::getRayTraceData(int *count, Eigen::Vector3f **positions, Eigen:
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
+void Rasterizer::initRayDataPass()
+{
+	glGenVertexArrays(1, &this->vao_raydata);
+	glBindVertexArray(this->vao_raydata);
+
+	glGenBuffers(1, &this->vbo_raydata);
+	glBindBuffer(GL_ARRAY_BUFFER, this->vbo_raydata);
+
+	glEnableVertexAttribArray(0);
+	glEnableVertexAttribArray(1);
+	glEnableVertexAttribArray(2);
+	glEnableVertexAttribArray(3);
+
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Ray), (void*)offsetof(Ray, origin));
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_TRUE, sizeof(Ray), (void*)offsetof(Ray, normal));
+	glVertexAttribPointer(2, 2, GL_FLOAT, GL_TRUE, sizeof(Ray), (void*)offsetof(Ray, texcoord));
+	glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(Ray), (void*)offsetof(Ray, position));
+
+	glBufferData(GL_ARRAY_BUFFER, this->frame_height*this->frame_width*sizeof(Ray), NULL, GL_STREAM_DRAW);
+
+	glGenFramebuffers(1, &this->fbo_raypass);
+	glBindFramebuffer(GL_FRAMEBUFFER, this->fbo_raypass);
+
+	// Reflection Buffer
+	glGenTextures(1, &this->raypass_target);
+	glBindTexture(GL_TEXTURE_2D, this->raypass_target);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, this->camera->getWidth(), this->camera->getHeight(), 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, this->raypass_target, 0);
+
+	// Make sure everything is fine
+	GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+	if (status != GL_FRAMEBUFFER_COMPLETE)
+		fprintf(stderr, "Prepass FBO incomplete\n");
+
+	// Clean up state
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	glBindTexture(GL_TEXTURE_2D, 0);
+	glBindVertexArray(0);
+}
+
 void Rasterizer::drawRayData(Ray *results, ResultOffset *result_offsets, int result_count, int material_count)
 {
 	if (!this->vao_raydata) {
-		glGenVertexArrays(1, &this->vao_raydata);
-		glBindVertexArray(this->vao_raydata);
-
-		glGenBuffers(1, &this->vbo_raydata);
-		glBindBuffer(GL_ARRAY_BUFFER, this->vbo_raydata);
-
-		glEnableVertexAttribArray(0);
-		glEnableVertexAttribArray(1);
-		glEnableVertexAttribArray(2);
-		glEnableVertexAttribArray(3);
-
-		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Ray), (void*)offsetof(Ray, origin));
-		glVertexAttribPointer(1, 3, GL_FLOAT, GL_TRUE, sizeof(Ray), (void*)offsetof(Ray, normal));
-		glVertexAttribPointer(2, 2, GL_FLOAT, GL_TRUE, sizeof(Ray), (void*)offsetof(Ray, texcoord));
-		glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(Ray), (void*)offsetof(Ray, position));
-
-		glBufferData(GL_ARRAY_BUFFER, this->frame_height*this->frame_width*sizeof(Ray), NULL, GL_STREAM_DRAW);
-	}
-	else {
-		glBindVertexArray(this->vao_raydata);
+		this->initRayDataPass();
 	}
 
-//	glClear(GL_COLOR_BUFFER_BIT);
+	glBindVertexArray(this->vao_raydata);
+	glBindFramebuffer(GL_FRAMEBUFFER, this->fbo_raypass);
+
+	glClear(GL_COLOR_BUFFER_BIT);
 	glDisable(GL_DEPTH_TEST);
 	glUseProgram(this->shader_programs["MESH"]);
 

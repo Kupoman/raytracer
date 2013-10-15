@@ -38,6 +38,9 @@ private:
 	unsigned int lpass_color0_target;
 	unsigned int fbo_lpass;
 
+	unsigned int raypass_target;
+	unsigned int fbo_raypass;
+
 	Eigen::Vector3f *position_transfer_buffer;
 	Eigen::Vector3f *normal_transfer_buffer;
 
