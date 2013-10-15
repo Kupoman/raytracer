@@ -45,10 +45,12 @@ RasMesh::RasMesh(Mesh *mesh)
 	glEnableVertexAttribArray(0);
 	glEnableVertexAttribArray(1);
 	glEnableVertexAttribArray(2);
+	glEnableVertexAttribArray(3);
 
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(RasVertex), (void*)offsetof(RasVertex, position));
 	glVertexAttribPointer(1, 3, GL_FLOAT, GL_TRUE, sizeof(RasVertex), (void*)offsetof(RasVertex, normal));
 	glVertexAttribPointer(2, 2, GL_FLOAT, GL_TRUE, sizeof(RasVertex), (void*)offsetof(RasVertex, uv));
+	glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(RasVertex), (void*)offsetof(RasVertex, position));
 
 	glBindVertexArray(0);
 

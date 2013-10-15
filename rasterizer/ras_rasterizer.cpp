@@ -439,10 +439,12 @@ void Rasterizer::drawRayData(Ray *results, ResultOffset *result_offsets, int res
 		glEnableVertexAttribArray(0);
 		glEnableVertexAttribArray(1);
 		glEnableVertexAttribArray(2);
+		glEnableVertexAttribArray(3);
 
 		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Ray), (void*)offsetof(Ray, origin));
 		glVertexAttribPointer(1, 3, GL_FLOAT, GL_TRUE, sizeof(Ray), (void*)offsetof(Ray, normal));
 		glVertexAttribPointer(2, 2, GL_FLOAT, GL_TRUE, sizeof(Ray), (void*)offsetof(Ray, texcoord));
+		glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(Ray), (void*)offsetof(Ray, position));
 
 		glBufferData(GL_ARRAY_BUFFER, this->frame_height*this->frame_width*sizeof(Ray), NULL, GL_STREAM_DRAW);
 	}
