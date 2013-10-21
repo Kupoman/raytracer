@@ -19,6 +19,7 @@ public:
 	void getMaterialDiffColor(float data[3]);
 	class Texture* getMaterialTexture();
 	bool getMaterialIsReflective();
+	float getMaterialReflectivity();
 
 	void draw();
 };

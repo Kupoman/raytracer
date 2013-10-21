@@ -175,8 +175,10 @@ void RayTracer::processRays(const Camera& camera, int count, Eigen::Vector3f *po
 
 		if (!this->meshes->intersect(&ray, &material)) {
 			material = NULL;
+			ray.normal = normals[i];
+			ray.position = positions[i];
 		}
-		//ray.position = ray.origin;
+
 		result_map[material].push_back(Ray(ray));
 	}
 

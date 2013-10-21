@@ -8,7 +8,7 @@ struct Light {\n\
 };\n\
 uniform Light lights[LIGHT_COUNT];\n\
 uniform int lightCount;\n\
-uniform sampler2D prepassBuffer0;\n\
+uniform sampler2D raypassBuffer;\n\
 uniform sampler2D lightBuffer;\n\
 smooth in vec2 outCoord;\n\
 smooth in vec3 outNorm;\n\
@@ -17,6 +17,7 @@ out vec4 fragColor;\n\
 \
 uniform vec3 material_color;\n\
 uniform int material_textured;\n\
+uniform float material_reflectivity;\n\
 uniform sampler2D texture_diffuse;\n\
 void main()\n\
 {\n\
@@ -31,7 +32,9 @@ void main()\n\
 	}\n\
 	vec3 texcolor = texture2D(texture_diffuse, outCoord).rgb;\n\
 	vec3 albedo = (material_textured==1) ? texcolor : material_color;\n\
-	vec3 diffuse = albedo * light;\n\
-			fragColor = vec4(diffuse, 1.0);\n\
+	vec3 reflection = texelFetch(raypassBuffer, ivec2(gl_FragCoord.st), 0).rgb;\n\
+	vec3 diffuse = material_reflectivity*reflection + (1.0-material_reflectivity)*albedo;\n\
+	diffuse *= light;\n\
+	fragColor = vec4(diffuse, 1.0);\n\
 }\n\
 ";

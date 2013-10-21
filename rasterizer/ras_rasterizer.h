@@ -12,6 +12,7 @@
 class Camera;
 class Mesh;
 struct Light;
+struct Material;
 
 class Rasterizer
 {
@@ -40,6 +41,7 @@ private:
 
 	unsigned int raypass_target;
 	unsigned int fbo_raypass;
+	Material* default_mat;
 
 	Eigen::Vector3f *position_transfer_buffer;
 	Eigen::Vector3f *normal_transfer_buffer;

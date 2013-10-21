@@ -20,6 +20,10 @@ Rasterizer::Rasterizer()
 	this->prepass_color0_target = 0;
 	this->prepass_depth_target = 0;
 	this->vao_raydata = 0;
+
+	this->default_mat = new Material();
+	this->default_mat->diffuse_color = Eigen::Vector3f(0.5, 1.0, 0.0);
+	this->default_mat->texture = NULL;
 }
 
 Rasterizer::~Rasterizer()
@@ -158,8 +162,8 @@ void Rasterizer::drawMeshes()
 	glUniform1i(loc, 0);
 
 	glActiveTexture(GL_TEXTURE1);
-	glBindTexture(GL_TEXTURE_2D, this->prepass_color0_target);
-	loc = glGetUniformLocation(this->shader_programs["MESH"], "prepassBuffer0");
+	glBindTexture(GL_TEXTURE_2D, this->raypass_target);
+	loc = glGetUniformLocation(this->shader_programs["MESH"], "raypassBuffer");
 	glUniform1i(loc, 1);
 
 	// Lights
@@ -198,6 +202,8 @@ void Rasterizer::drawMeshes()
 		mesh->getMaterialDiffColor(color);
 		glUniform3fv(loc, 1, color);
 
+		loc = glGetUniformLocation(this->shader_programs["MESH"], "material_reflectivity");
+		glUniform1f(loc, mesh->getMaterialReflectivity());
 
 		loc = glGetUniformLocation(this->shader_programs["MESH"], "material_textured");
 		glUniform1i(loc, mesh->getMaterialTexture() != NULL);
@@ -429,6 +435,9 @@ void Rasterizer::getRayTraceData(int *count, Eigen::Vector3f **positions, Eigen:
 
 void Rasterizer::initRayDataPass()
 {
+	if (!this->shader_programs["MESH"])
+		this->shader_programs["MESH"] = _initShader(shader_mesh_vs, shader_mesh_fs);
+
 	glGenVertexArrays(1, &this->vao_raydata);
 	glBindVertexArray(this->vao_raydata);
 
@@ -453,7 +462,7 @@ void Rasterizer::initRayDataPass()
 	// Reflection Buffer
 	glGenTextures(1, &this->raypass_target);
 	glBindTexture(GL_TEXTURE_2D, this->raypass_target);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, this->camera->getWidth(), this->camera->getHeight(), 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, this->frame_width, this->frame_height, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, this->raypass_target, 0);
@@ -461,7 +470,11 @@ void Rasterizer::initRayDataPass()
 	// Make sure everything is fine
 	GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
 	if (status != GL_FRAMEBUFFER_COMPLETE)
-		fprintf(stderr, "Prepass FBO incomplete\n");
+		fprintf(stderr, "RayPass FBO incomplete\n");
+
+
+	GLenum buffers[] = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1};
+	glDrawBuffers(1, buffers);
 
 	// Clean up state
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -475,28 +488,64 @@ void Rasterizer::drawRayData(Ray *results, ResultOffset *result_offsets, int res
 		this->initRayDataPass();
 	}
 
-	glBindVertexArray(this->vao_raydata);
 	glBindFramebuffer(GL_FRAMEBUFFER, this->fbo_raypass);
 
+	glViewport(0, 0, this->frame_width, this->frame_height);
+	glBindVertexArray(this->vao_raydata);
+
+	glClearColor(0.5, 1.0, 0.0, 1.0);
 	glClear(GL_COLOR_BUFFER_BIT);
 	glDisable(GL_DEPTH_TEST);
 	glUseProgram(this->shader_programs["MESH"]);
 
 	glBufferSubData(GL_ARRAY_BUFFER, 0, result_count * sizeof(Ray), results);
 
+	int loc = glGetUniformLocation(this->shader_programs["MESH"], "proj_mat");
+	glUniformMatrix4fv(loc, 1, GL_FALSE, &this->proj_mat[0][0]);
+
+	// Lights
+	char light_name[64];
+	Eigen::Vector3f color;
+
+	loc = glGetUniformLocation(this->shader_programs["MESH"], "lightCount");
+	glUniform1i(loc, this->lights.size());
+
+	for (int i = 0; i < this->lights.size(); i++) {
+		sprintf(light_name, "lights[%d].position", i);
+		loc = glGetUniformLocation(this->shader_programs["MESH"], light_name);
+		if (loc < 0) {
+			fprintf(stderr, "Out of Lights for %s\n", light_name);
+			break;
+		}
+		glUniform3fv(loc, 1, &this->lights[i]->position[0]);
+
+
+		sprintf(light_name, "lights[%d].energy", i);
+		loc = glGetUniformLocation(this->shader_programs["MESH"], light_name);
+		if (loc < 0) {
+			fprintf(stderr, "Out of Lights for %s\n", light_name);
+			break;
+		}
+		color = this->lights[i]->color * 1.0/255;
+		glUniform3fv(loc, 1, &color[0]);
+	}
+
 	Material *material;
-	float color[3];
+	float mat_color[3];
 	int start = 0;
 	for (int i = 0; i < material_count; i++) {
 		material = result_offsets[i].first;
 
-		if (!material) continue;
+		if (!material) material = this->default_mat;
 
-		int loc = glGetUniformLocation(this->shader_programs["MESH"], "material_color");
-		color[0] = material->diffuse_color[0] / 255;
-		color[1] = material->diffuse_color[1] / 255;
-		color[2] = material->diffuse_color[2] / 255;
-		glUniform3fv(loc, 1, color);
+		loc = glGetUniformLocation(this->shader_programs["MESH"], "material_color");
+		mat_color[0] = material->diffuse_color[0] / 255;
+		mat_color[1] = material->diffuse_color[1] / 255;
+		mat_color[2] = material->diffuse_color[2] / 255;
+		glUniform3fv(loc, 1, mat_color);
+
+		loc = glGetUniformLocation(this->shader_programs["MESH"], "material_reflectivity");
+		glUniform1f(loc, 0.0);
 
 		loc = glGetUniformLocation(this->shader_programs["MESH"], "material_textured");
 		glUniform1i(loc, material->texture != NULL);
@@ -511,4 +560,8 @@ void Rasterizer::drawRayData(Ray *results, ResultOffset *result_offsets, int res
 	}
 
 	glUseProgram(0);
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	glBindVertexArray(0);
+
+	glEnable(GL_DEPTH_TEST);
 }

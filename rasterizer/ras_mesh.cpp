@@ -84,6 +84,11 @@ bool RasMesh::getMaterialIsReflective()
 	return this->material->reflectivity > 0;
 }
 
+float RasMesh::getMaterialReflectivity()
+{
+	return this->material->reflectivity;
+}
+
 void RasMesh::draw()
 {
 	glBindVertexArray(this->vao);
