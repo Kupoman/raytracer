@@ -144,6 +144,26 @@ void Rasterizer::beginFrame()
 //	fprintf(stderr, "%s\n", gluErrorString(glGetError()));
 }
 
+void Rasterizer::bindMaterial(Material* material, int program)
+{
+	int loc;
+
+	loc = glGetUniformLocation(program, "material_color");
+	Eigen::Vector3f color = material->diffuse_color /255;
+	glUniform3fv(loc, 1, &color(0));
+
+	loc = glGetUniformLocation(program, "material_reflectivity");
+	glUniform1f(loc, material->reflectivity);
+
+	loc = glGetUniformLocation(program, "material_textured");
+	glUniform1i(loc, material->texture != NULL);
+
+	glActiveTexture(GL_TEXTURE4);
+	glBindTexture(GL_TEXTURE_2D, this->textures[material->texture]);
+	loc = glGetUniformLocation(program, "texture_diffuse");
+	glUniform1i(loc, 4);
+}
+
 void Rasterizer::drawMeshes()
 {
 	glClearColor(0.3f,0.3f,0.3f,1.0f);
@@ -196,23 +216,7 @@ void Rasterizer::drawMeshes()
 	RasMesh *mesh;
 	for (int i=0; i < this->meshes.size(); i++) {
 		mesh = this->meshes[i];
-
-		loc = glGetUniformLocation(this->shader_programs["MESH"], "material_color");
-		float color[3];
-		mesh->getMaterialDiffColor(color);
-		glUniform3fv(loc, 1, color);
-
-		loc = glGetUniformLocation(this->shader_programs["MESH"], "material_reflectivity");
-		glUniform1f(loc, mesh->getMaterialReflectivity());
-
-		loc = glGetUniformLocation(this->shader_programs["MESH"], "material_textured");
-		glUniform1i(loc, mesh->getMaterialTexture() != NULL);
-
-		glActiveTexture(GL_TEXTURE4);
-		glBindTexture(GL_TEXTURE_2D, this->textures[mesh->getMaterialTexture()]);
-		loc = glGetUniformLocation(this->shader_programs["MESH"], "texture_diffuse");
-		glUniform1i(loc, 4);
-
+		this->bindMaterial(mesh->getMaterial(), this->shader_programs["MESH"]);
 		this->meshes[i]->draw();
 	}
 
@@ -538,22 +542,7 @@ void Rasterizer::drawRayData(Ray *results, ResultOffset *result_offsets, int res
 
 		if (!material) material = this->default_mat;
 
-		loc = glGetUniformLocation(this->shader_programs["MESH"], "material_color");
-		mat_color[0] = material->diffuse_color[0] / 255;
-		mat_color[1] = material->diffuse_color[1] / 255;
-		mat_color[2] = material->diffuse_color[2] / 255;
-		glUniform3fv(loc, 1, mat_color);
-
-		loc = glGetUniformLocation(this->shader_programs["MESH"], "material_reflectivity");
-		glUniform1f(loc, 0.0);
-
-		loc = glGetUniformLocation(this->shader_programs["MESH"], "material_textured");
-		glUniform1i(loc, material->texture != NULL);
-
-		glActiveTexture(GL_TEXTURE4);
-		glBindTexture(GL_TEXTURE_2D, this->textures[material->texture]);
-		loc = glGetUniformLocation(this->shader_programs["MESH"], "texture_diffuse");
-		glUniform1i(loc, 4);
+		this->bindMaterial(material, this->shader_programs["MESH"]);
 
 		glDrawArrays(GL_POINTS, start, result_offsets[i].second);
 		start = result_offsets[i].second;

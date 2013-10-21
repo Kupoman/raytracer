@@ -16,6 +16,7 @@ public:
 	~RasMesh();
 
 	// Material Access
+	struct Material* getMaterial();
 	void getMaterialDiffColor(float data[3]);
 	class Texture* getMaterialTexture();
 	bool getMaterialIsReflective();

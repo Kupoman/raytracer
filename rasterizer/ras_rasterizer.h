@@ -57,6 +57,8 @@ private:
 	unsigned int vbo_raydata;
 	unsigned int vao_raydata;
 
+	void bindMaterial(struct Material* material, int program);
+
 public:
 	Rasterizer();
 	~Rasterizer();

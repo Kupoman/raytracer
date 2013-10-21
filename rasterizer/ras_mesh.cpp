@@ -66,6 +66,11 @@ RasMesh::~RasMesh()
 	delete [] this->indices;
 }
 
+Material* RasMesh::getMaterial()
+{
+	return this->material;
+}
+
 void RasMesh::getMaterialDiffColor(float data[3])
 {
 	Eigen::Vector3f color = this->material->diffuse_color / 255.0;
