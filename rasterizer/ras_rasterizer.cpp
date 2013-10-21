@@ -152,6 +152,13 @@ void Rasterizer::bindMaterial(Material* material, int program)
 	Eigen::Vector3f color = material->diffuse_color /255;
 	glUniform3fv(loc, 1, &color(0));
 
+	loc = glGetUniformLocation(program, "material_scolor");
+	color = material->specular_color /255;
+	glUniform3fv(loc, 1, &color(0));
+
+	loc = glGetUniformLocation(program, "material_shininess");
+	glUniform1f(loc, material->shininess);
+
 	loc = glGetUniformLocation(program, "material_reflectivity");
 	glUniform1f(loc, material->reflectivity);
 
@@ -178,7 +185,7 @@ void Rasterizer::bindLights(int program)
 		sprintf(light_name, "lights[%d].position", i);
 		loc = glGetUniformLocation(program, light_name);
 		if (loc < 0) {
-			fprintf(stderr, "Out of Lights for %s\n", light_name);
+//			fprintf(stderr, "Out of Lights for %s\n", light_name);
 			break;
 		}
 		glUniform3fv(loc, 1, &this->lights[i]->position[0]);
@@ -187,7 +194,7 @@ void Rasterizer::bindLights(int program)
 		sprintf(light_name, "lights[%d].energy", i);
 		loc = glGetUniformLocation(program, light_name);
 		if (loc < 0) {
-			fprintf(stderr, "Out of Lights for %s\n", light_name);
+//			fprintf(stderr, "Out of Lights for %s\n", light_name);
 			break;
 		}
 		color = this->lights[i]->color * 1.0/255;
