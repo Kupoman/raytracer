@@ -164,6 +164,37 @@ void Rasterizer::bindMaterial(Material* material, int program)
 	glUniform1i(loc, 4);
 }
 
+void Rasterizer::bindLights(int program)
+{
+
+	char light_name[64];
+	Eigen::Vector3f color;
+	int loc;
+
+	loc = glGetUniformLocation(program, "lightCount");
+	glUniform1i(loc, this->lights.size());
+
+	for (int i = 0; i < this->lights.size(); i++) {
+		sprintf(light_name, "lights[%d].position", i);
+		loc = glGetUniformLocation(program, light_name);
+		if (loc < 0) {
+			fprintf(stderr, "Out of Lights for %s\n", light_name);
+			break;
+		}
+		glUniform3fv(loc, 1, &this->lights[i]->position[0]);
+
+
+		sprintf(light_name, "lights[%d].energy", i);
+		loc = glGetUniformLocation(program, light_name);
+		if (loc < 0) {
+			fprintf(stderr, "Out of Lights for %s\n", light_name);
+			break;
+		}
+		color = this->lights[i]->color * 1.0/255;
+		glUniform3fv(loc, 1, &color[0]);
+	}
+}
+
 void Rasterizer::drawMeshes()
 {
 	glClearColor(0.3f,0.3f,0.3f,1.0f);
@@ -186,32 +217,7 @@ void Rasterizer::drawMeshes()
 	loc = glGetUniformLocation(this->shader_programs["MESH"], "raypassBuffer");
 	glUniform1i(loc, 1);
 
-	// Lights
-	char light_name[64];
-	Eigen::Vector3f color;
-
-	loc = glGetUniformLocation(this->shader_programs["MESH"], "lightCount");
-	glUniform1i(loc, this->lights.size());
-
-	for (int i = 0; i < this->lights.size(); i++) {
-		sprintf(light_name, "lights[%d].position", i);
-		loc = glGetUniformLocation(this->shader_programs["MESH"], light_name);
-		if (loc < 0) {
-			fprintf(stderr, "Out of Lights for %s\n", light_name);
-			break;
-		}
-		glUniform3fv(loc, 1, &this->lights[i]->position[0]);
-
-
-		sprintf(light_name, "lights[%d].energy", i);
-		loc = glGetUniformLocation(this->shader_programs["MESH"], light_name);
-		if (loc < 0) {
-			fprintf(stderr, "Out of Lights for %s\n", light_name);
-			break;
-		}
-		color = this->lights[i]->color * 1.0/255;
-		glUniform3fv(loc, 1, &color[0]);
-	}
+	this->bindLights(this->shader_programs["MESH"]);
 
 	RasMesh *mesh;
 	for (int i=0; i < this->meshes.size(); i++) {
@@ -507,35 +513,9 @@ void Rasterizer::drawRayData(Ray *results, ResultOffset *result_offsets, int res
 	int loc = glGetUniformLocation(this->shader_programs["MESH"], "proj_mat");
 	glUniformMatrix4fv(loc, 1, GL_FALSE, &this->proj_mat[0][0]);
 
-	// Lights
-	char light_name[64];
-	Eigen::Vector3f color;
-
-	loc = glGetUniformLocation(this->shader_programs["MESH"], "lightCount");
-	glUniform1i(loc, this->lights.size());
-
-	for (int i = 0; i < this->lights.size(); i++) {
-		sprintf(light_name, "lights[%d].position", i);
-		loc = glGetUniformLocation(this->shader_programs["MESH"], light_name);
-		if (loc < 0) {
-			fprintf(stderr, "Out of Lights for %s\n", light_name);
-			break;
-		}
-		glUniform3fv(loc, 1, &this->lights[i]->position[0]);
-
-
-		sprintf(light_name, "lights[%d].energy", i);
-		loc = glGetUniformLocation(this->shader_programs["MESH"], light_name);
-		if (loc < 0) {
-			fprintf(stderr, "Out of Lights for %s\n", light_name);
-			break;
-		}
-		color = this->lights[i]->color * 1.0/255;
-		glUniform3fv(loc, 1, &color[0]);
-	}
+	this->bindLights(this->shader_programs["MESH"]);
 
 	Material *material;
-	float mat_color[3];
 	int start = 0;
 	for (int i = 0; i < material_count; i++) {
 		material = result_offsets[i].first;
