@@ -12,6 +12,9 @@
 #include <map>
 #include <vector>
 
+
+const float EPSILON = 0.00001;
+
 RayTracer::RayTracer()
 {
 	this->bounces = 2;
@@ -22,23 +25,20 @@ RayTracer::RayTracer()
 	this->photon_count = 10000;
 	this->photon_estimate = 100;
 	this->photon_radius = 1.0;
-
-	this->meshes = new AccelArray();
 }
 
 RayTracer::~RayTracer()
 {
 	if (this->photon_map)
 		delete this->photon_map;
-
-	delete this->meshes;
 }
 
 void RayTracer::addMesh(Mesh *mesh)
 {
-	this->meshes->addMesh(mesh);
+	this->meshes.push_back(mesh);
 }
 
+#if 0
 void RayTracer::shade(const Scene& scene, Ray *ray, Material* material, Eigen::Vector3f *color, int pass)
 {
 
@@ -152,20 +152,80 @@ void RayTracer::renderScene(const Scene& scene, int width, int height, unsigned 
 		}
 	}
 }
+#endif
 
-typedef std::map<Material*, std::vector<Ray> > ResultMap;
+void RayTracer::trace(int rstart, int rend, int tstart, int tend)
+{
+	Eigen::Vector3f E1, E2, T, P, Q, D, O;
+	float det, inv_det, t, u, v;
+	for (int ridx = rstart; ridx < rend; ridx++) {
+		D = this->rays[ridx].direction;
+		O = this->rays[ridx].origin;
+
+		float min_t = 1000000, min_u, min_v;
+		int min_index = -1;
+		for (int tidx = tstart; tidx < tend; tidx++) {
+				E1 = this->tris[tidx].e1;
+				E2 = this->tris[tidx].e2;
+				P = D.cross(E2);
+
+				det = P.dot(E1);
+				if (det < EPSILON)
+					continue;
+
+				T = O - this->tris[tidx].v0;
+				u = T.dot(P);
+
+				if (u < 0 || u > det) continue;
+
+				Q = T.cross(E1);
+				v = D.dot(Q);
+
+				if (v < 0 || u + v > det) continue;
+
+				t = E2.dot(Q);
+				inv_det = 1.0 / det;
+
+				t *= inv_det;
+				u *= inv_det;
+				v *= inv_det;
+
+				if (t < EPSILON) continue;
+
+				if (t < min_t) {
+					min_t = t;
+					min_u = u;
+					min_v = v;
+					min_index = tidx;
+				}
+			}
+
+			if (min_index != -1) {
+				u = min_u;
+				v = min_v;
+				this->rays[ridx].position = (1 - u -v)*this->tris[min_index].v0 + u*this->tris[min_index].v1 + v*this->tris[min_index].v2;
+				this->rays[ridx].normal = (1 - u -v)*this->tris[min_index].n0 + u*this->tris[min_index].n1 + v*this->tris[min_index].n2;
+				this->rays[ridx].normal.normalize();
+				this->rays[ridx].texcoord = (1 - u -v)*this->tris[min_index].t0 + u*this->tris[min_index].t1 + v*this->tris[min_index].t2;
+				this->result_map[this->tris[min_index].material].push_back(this->rays[ridx]);
+			}
+
+	}
+}
+
 void RayTracer::processRays(const Camera& camera, int count, Eigen::Vector3f *positions, Eigen::Vector3f *normals, Ray **results, ResultOffset **result_offsets, int *out_result_count, int *out_material_count)
 {
-	Ray ray;
 	Eigen::Vector3f direction;
 
 	Material *material = NULL;
 
-	ResultMap result_map;
-
 	this->result_vec.clear();
 	this->offset_vec.clear();
+	this->result_map.clear();
 
+	this->rays.clear();
+
+	Ray ray;
 	for (int i = 0; i < count; i++) {
 		direction = positions[i] - 2 * positions[i].dot(normals[i]) * normals[i];
 
@@ -173,21 +233,40 @@ void RayTracer::processRays(const Camera& camera, int count, Eigen::Vector3f *po
 		ray.direction = direction;
 		ray.origin = positions[i];
 
-		if (!this->meshes->intersect(&ray, &material)) {
-			material = NULL;
-			ray.normal = normals[i];
-			ray.position = positions[i];
-		}
-
-		result_map[material].push_back(Ray(ray));
+//		result_map[material].push_back(Ray(ray));
+		this->rays.push_back(ray);
 	}
+
+	this->tris.clear();
+	Mesh* mesh;
+	Tri tri;
+	for (int i = 0; i < this->meshes.size(); i++) {
+		mesh = this->meshes[i];
+		for (int j = 0; j < mesh->num_faces; j++) {
+			tri.v0 = mesh->verts[mesh->faces[j].v[0]];
+			tri.v1 = mesh->verts[mesh->faces[j].v[1]];
+			tri.v2 = mesh->verts[mesh->faces[j].v[2]];
+			tri.n0 = mesh->normals[mesh->faces[j].v[0]];
+			tri.n1 = mesh->normals[mesh->faces[j].v[1]];
+			tri.n2 = mesh->normals[mesh->faces[j].v[2]];
+			tri.t0 = mesh->texcoords[mesh->faces[j].v[0]];
+			tri.t1 = mesh->texcoords[mesh->faces[j].v[1]];
+			tri.t2 = mesh->texcoords[mesh->faces[j].v[2]];
+			tri.e1 = tri.v1 - tri.v0;
+			tri.e2 = tri.v2 - tri.v0;
+			tri.material = mesh->material;
+			this->tris.push_back(tri);
+		}
+	}
+
+	this->trace(0, count, 0, this->tris.size());
 
 	int offset = 0;
 	for (ResultMap::iterator iter = result_map.begin(); iter != result_map.end(); iter++) {
 		material = iter->first;
-		std::vector<Ray> rays = iter->second;
-		offset += rays.size();
-		this->result_vec.insert(result_vec.end(), rays.begin(), rays.end());
+		std::vector<Ray> result_rays = iter->second;
+		offset += result_rays.size();
+		this->result_vec.insert(result_vec.end(), result_rays.begin(), result_rays.end());
 		this->offset_vec.push_back(std::pair<Material*, int>(material, offset));
 	}
 

@@ -5,6 +5,7 @@
 #include "data/data.h"
 
 #include <vector>
+#include <map>
 
 
 class RayTracer
@@ -14,7 +15,7 @@ private:
 
 	bool do_shadows;
 
-	class IAccel* meshes;
+	std::vector<Mesh*> meshes;
 
 	// Photon Mapping
 	class PhotonMap* photon_map;
@@ -25,7 +26,27 @@ private:
 	std::vector<Ray> result_vec;
 	std::vector<ResultOffset> offset_vec;
 
+	std::vector<Ray> rays;
+	struct Tri {
+		Eigen::Vector3f v0;
+		Eigen::Vector3f v1;
+		Eigen::Vector3f v2;
+		Eigen::Vector3f n0;
+		Eigen::Vector3f n1;
+		Eigen::Vector3f n2;
+		Eigen::Vector2f t0;
+		Eigen::Vector2f t1;
+		Eigen::Vector2f t2;
+		Eigen::Vector3f e1;
+		Eigen::Vector3f e2;
+		Material* material;
+	};
+
+	typedef std::map<Material*, std::vector<Ray> > ResultMap;
+	ResultMap result_map;
+	std::vector<Tri> tris;
 	void shade(const class Scene& scene, struct Ray *ray, struct Material* material, Eigen::Vector3f *color, int pass);
+	void trace(int rstart, int rend, int tstart, int tend);
 
 public:
 	RayTracer();
