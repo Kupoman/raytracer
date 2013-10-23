@@ -240,9 +240,9 @@ void RayTracer::processRays(const Camera& camera, int count, Eigen::Vector3f *po
 	this->tris.clear();
 	Mesh* mesh;
 	Tri tri;
-	for (int i = 0; i < this->meshes.size(); i++) {
+	for (unsigned int i = 0; i < this->meshes.size(); i++) {
 		mesh = this->meshes[i];
-		for (int j = 0; j < mesh->num_faces; j++) {
+		for (unsigned int j = 0; j < mesh->num_faces; j++) {
 			tri.v0 = mesh->verts[mesh->faces[j].v[0]];
 			tri.v1 = mesh->verts[mesh->faces[j].v[1]];
 			tri.v2 = mesh->verts[mesh->faces[j].v[2]];

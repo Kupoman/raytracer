@@ -35,7 +35,7 @@ static Eigen::Vector3f _convertColor(aiColor3D color)
 static void _traverseNodes(aiNode* node, const aiScene* ascene, Scene* scene)
 {
 //	fprintf(stderr, "%s\n", node->mName.C_Str());
-	for (int i = 0; i < node->mNumMeshes; ++i) {
+	for (unsigned int i = 0; i < node->mNumMeshes; ++i) {
 		Mesh* mesh = new Mesh;
 		aiMesh* amesh = ascene->mMeshes[node->mMeshes[i]];
 		mesh->position = Eigen::Vector3f(node->mTransformation.a4,
@@ -50,7 +50,7 @@ static void _traverseNodes(aiNode* node, const aiScene* ascene, Scene* scene)
 		aiMatrix4x4 normal_mat = aiMatrix4x4(node->mTransformation);
 		normal_mat.Inverse().Transpose();
 		Eigen::Vector3f temp_texcoord = Eigen::Vector3f();
-		for (int j = 0; j < mesh->num_verts; ++j) {
+		for (unsigned int j = 0; j < mesh->num_verts; ++j) {
 			mesh->verts[j] = _convertVector(node->mTransformation * amesh->mVertices[j]);
 			mesh->normals[j] = _convertVector(normal_mat * amesh->mNormals[j]);
 			if (amesh->HasTextureCoords(0))
@@ -59,7 +59,7 @@ static void _traverseNodes(aiNode* node, const aiScene* ascene, Scene* scene)
 //			fprintf(stderr, "vert: %.2f, %.2f, %.2f\n", mesh->verts[j](0), mesh->verts[j](1), mesh->verts[j](2));
 //			fprintf(stderr, "normal: %.2f, %.2f, %.2f\n", mesh->normals[j](0), mesh->normals[j](1), mesh->normals[j](2));
 		}
-		for (int j = 0; j < mesh->num_faces; ++j) {
+		for (unsigned int j = 0; j < mesh->num_faces; ++j) {
 //			fprintf(stderr, "Indices: %d, %d, %d\n", amesh->mFaces[j].mIndices[0], amesh->mFaces[j].mIndices[1], amesh->mFaces[j].mIndices[2]);
 			mesh->faces[j].v[0] = amesh->mFaces[j].mIndices[0];
 			mesh->faces[j].v[1] = amesh->mFaces[j].mIndices[1];
@@ -71,14 +71,14 @@ static void _traverseNodes(aiNode* node, const aiScene* ascene, Scene* scene)
 		scene->addMesh(mesh);
 	}
 
-	for (int i = 0; i < node->mNumChildren; ++i) {
+	for (unsigned int i = 0; i < node->mNumChildren; ++i) {
 		_traverseNodes(node->mChildren[i], ascene, scene);
 	}
 }
 
 static void _mergeScene(const aiScene* ascene, Scene* scene, std::string relpath)
 {
-	for (int i = 0; i < ascene->mNumMaterials; ++i) {
+	for (unsigned int i = 0; i < ascene->mNumMaterials; ++i) {
 		aiMaterial* amat = ascene->mMaterials[i];
 		Material* mat = new Material;
 		aiColor3D color;
@@ -124,7 +124,7 @@ static void _mergeScene(const aiScene* ascene, Scene* scene, std::string relpath
 		scene->camera->setFOV(acamera->mHorizontalFOV/2);
 	}
 
-	for (int i = 0; i < ascene->mNumLights; ++i) {
+	for (unsigned int i = 0; i < ascene->mNumLights; ++i) {
 		Light* light = new Light;
 		aiLight* alight = ascene->mLights[i];
 		light->position = _convertVector(ascene->mRootNode->FindNode(alight->mName)->mTransformation * alight->mPosition);

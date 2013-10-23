@@ -16,7 +16,7 @@ AccelArray::AccelArray()
 
 void AccelArray::addMesh(Mesh* mesh)
 {
-	for (int i = 0; i < mesh->num_faces; ++i) {
+	for (unsigned int i = 0; i < mesh->num_faces; ++i) {
 		this->v0.push_back(mesh->verts[mesh->faces[i].v[0]]);
 		this->v1.push_back(mesh->verts[mesh->faces[i].v[1]]);
 		this->v2.push_back(mesh->verts[mesh->faces[i].v[2]]);
@@ -50,7 +50,7 @@ bool AccelArray::occlude(Ray* ray)
 	Eigen::Vector3f D = ray->direction;
 	Eigen::Vector3f O = ray->origin;
 
-	for (int i = 0; i < this->v0.size(); ++i) {
+	for (unsigned int i = 0; i < this->v0.size(); ++i) {
 
 		E1 = this->e1[i];
 		E2 = this->e2[i];
@@ -84,7 +84,7 @@ bool AccelArray::intersect(Ray* ray, Material **material)
 	float min_t = 1000000, min_u, min_v;
 	int min_index = -1;
 
-	for (int i = 0; i < this->v0.size(); ++i) {
+	for (unsigned int i = 0; i < this->v0.size(); ++i) {
 
 		E1 = this->e1[i];
 		E2 = this->e2[i];

@@ -28,7 +28,7 @@ Rasterizer::Rasterizer()
 
 Rasterizer::~Rasterizer()
 {
-	for (int i=0; i < this->meshes.size(); i++) {
+	for (unsigned int i=0; i < this->meshes.size(); i++) {
 		delete this->meshes[i];
 	}
 	this->meshes.clear();
@@ -181,7 +181,7 @@ void Rasterizer::bindLights(int program)
 	loc = glGetUniformLocation(program, "lightCount");
 	glUniform1i(loc, this->lights.size());
 
-	for (int i = 0; i < this->lights.size(); i++) {
+	for (unsigned int i = 0; i < this->lights.size(); i++) {
 		sprintf(light_name, "lights[%d].position", i);
 		loc = glGetUniformLocation(program, light_name);
 		if (loc < 0) {
@@ -227,7 +227,7 @@ void Rasterizer::drawMeshes()
 	this->bindLights(this->shader_programs["MESH"]);
 
 	RasMesh *mesh;
-	for (int i=0; i < this->meshes.size(); i++) {
+	for (unsigned int i=0; i < this->meshes.size(); i++) {
 		mesh = this->meshes[i];
 		this->bindMaterial(mesh->getMaterial(), this->shader_programs["MESH"]);
 		this->meshes[i]->draw();
@@ -298,7 +298,7 @@ void Rasterizer::drawPrepass()
 	glViewport(0, 0, this->camera->getWidth(), this->camera->getHeight());
 
 	RasMesh *mesh;
-	for (int i=0; i < this->meshes.size(); i++) {
+	for (unsigned int i=0; i < this->meshes.size(); i++) {
 		mesh = this->meshes[i];
 		loc = glGetUniformLocation(this->shader_programs["PREPASS"], "isReflective");
 		glUniform1i(loc, mesh->getMaterialIsReflective());
@@ -366,7 +366,7 @@ void Rasterizer::drawLights(std::vector<Light*> lights)
 	glUniform1i(loc, 1);
 
 	Light* light;
-	for (int i = 0; i < lights.size(); i++) {
+	for (unsigned int i = 0; i < lights.size(); i++) {
 		light = lights[i];
 
 		loc = glGetUniformLocation(this->shader_programs["LIGHTPASS"], "light_position");

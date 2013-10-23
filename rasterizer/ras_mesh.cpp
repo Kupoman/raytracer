@@ -17,7 +17,7 @@ RasMesh::RasMesh(Mesh *mesh)
 	this->verts = new RasVertex[mesh->num_verts];
 	this->indices = new unsigned short[mesh->num_faces * 3];
 
-	for (int i = 0; i < mesh->num_verts; i++) {
+	for (unsigned int i = 0; i < mesh->num_verts; i++) {
 		this->verts[i].position[0] = mesh->verts[i][0];
 		this->verts[i].position[1] = mesh->verts[i][1];
 		this->verts[i].position[2] = mesh->verts[i][2];
@@ -30,7 +30,7 @@ RasMesh::RasMesh(Mesh *mesh)
 		this->verts[i].uv[1] = mesh->texcoords[i][1];
 	}
 
-	for (int i = 0; i < mesh->num_faces; i++) {
+	for (unsigned int i = 0; i < mesh->num_faces; i++) {
 		this->indices[(3 * i) + 0] = mesh->faces[i].v[0];
 		this->indices[(3 * i) + 1] = mesh->faces[i].v[1];
 		this->indices[(3 * i) + 2] = mesh->faces[i].v[2];

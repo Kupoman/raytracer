@@ -17,7 +17,7 @@ Texture::Texture(const char *filename)
 	this->pixels = new unsigned char[4*this->width*this->height];
 
 	/* Convert from BGRA to RGBA */
-	for (int i = 0; i < this->width * this->height; ++i) {
+	for (unsigned int i = 0; i < this->width * this->height; ++i) {
 		this->pixels[i* 4 + 0] = temp[i * 4 + 2];
 		this->pixels[i* 4 + 1] = temp[i * 4 + 1];
 		this->pixels[i* 4 + 2] = temp[i * 4 + 0];

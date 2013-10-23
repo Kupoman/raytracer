@@ -40,7 +40,7 @@ bool AccelSpheres::occlude(Ray* ray)
 	Sphere *s;
 	Eigen::Vector3f Rd, Ro;
 	float a, b, c;
-	for (int i = 0; i < this->spheres.size(); i++) {
+	for (unsigned int i = 0; i < this->spheres.size(); i++) {
 		s = this->spheres[i];
 		Rd = ray->direction;
 		Ro = ray->origin;

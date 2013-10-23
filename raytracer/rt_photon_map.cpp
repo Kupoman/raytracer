@@ -92,7 +92,7 @@ void PhotonMap::generate(const Scene* scene, IAccel *meshes, int count)
 	float max_dist = 12;
 	float rmax_2 = RAND_MAX/2.0;
 	srand(time(NULL));
-	for (int i = 0; i < scene->lights.size(); ++i) {
+	for (unsigned int i = 0; i < scene->lights.size(); ++i) {
 		light = scene->lights[i];
 		energy = 5*light->color/count;
 		for (int j = 0; j < count;) {
@@ -115,7 +115,7 @@ void PhotonMap::generate(const Scene* scene, IAccel *meshes, int count)
 //	float scale = 1.0 / this->photons.size();
 	std::cout << this->photons.size() << std::endl;
 	Eigen::Vector3f esum = Eigen::Vector3f(0, 0, 0);
-	for (int i = 0; i < this->photons.size(); ++i)
+	for (unsigned int i = 0; i < this->photons.size(); ++i)
 	{
 		esum += this->photons[i]->energy;
 //		this->photons[i]->energy *= scale;
@@ -129,7 +129,7 @@ Eigen::Vector3f PhotonMap::lookup(Eigen::Vector3f position, float radius)
 	Photon* p;
 	Eigen::Vector3f result = Eigen::Vector3f(0, 0, 0);
 	Eigen::Vector3f difference;
-	for (int i = 0; i < this->photons.size(); ++i) {
+	for (unsigned int i = 0; i < this->photons.size(); ++i) {
 		p = this->photons[i];
 
 		difference = p->position - position;
@@ -146,7 +146,7 @@ static bool _photon_sort(Photon*a, Photon*b)
 	return a->distance2 < b->distance2;
 }
 
-Eigen::Vector3f PhotonMap::radiance_estimate(Eigen::Vector3f position, Eigen::Vector3f ray_dir, Eigen::Vector3f normal, int count, float radius)
+Eigen::Vector3f PhotonMap::radiance_estimate(Eigen::Vector3f position, Eigen::Vector3f ray_dir, Eigen::Vector3f normal, unsigned int count, float radius)
 {
 	float r2 = radius * radius;
 	float l2, weight;
@@ -156,7 +156,7 @@ Eigen::Vector3f PhotonMap::radiance_estimate(Eigen::Vector3f position, Eigen::Ve
 	Eigen::Vector3f result = Eigen::Vector3f(0, 0, 0);
 	Eigen::Vector3f difference;
 
-	for (int i = 0; i < this->photons.size(); ++i) {
+	for (unsigned int i = 0; i < this->photons.size(); ++i) {
 		p = this->photons[i];
 
 		difference = p->position - position;
@@ -175,7 +175,7 @@ Eigen::Vector3f PhotonMap::radiance_estimate(Eigen::Vector3f position, Eigen::Ve
 	float max_dist = std::sqrt(max_dist2);
 #endif
 
-	for (int i = 0; i < nearest_photons.size() && i < count; ++i) {
+	for (unsigned int i = 0; i < nearest_photons.size() && i < count; ++i) {
 		p = nearest_photons[i];
 
 		difference = p->position - position;

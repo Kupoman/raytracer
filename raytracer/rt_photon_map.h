@@ -13,7 +13,7 @@ private:
 public:
 	void generate(const class Scene *scene, class IAccel* meshes, int count);
 	Eigen::Vector3f lookup(Eigen::Vector3f position, float radius);
-	Eigen::Vector3f radiance_estimate(Eigen::Vector3f position, Eigen::Vector3f ray_dir, Eigen::Vector3f normal, int count, float radius);
+	Eigen::Vector3f radiance_estimate(Eigen::Vector3f position, Eigen::Vector3f ray_dir, Eigen::Vector3f normal, unsigned int count, float radius);
 };
 
 #endif

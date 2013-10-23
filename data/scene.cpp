@@ -16,15 +16,15 @@ Scene::Scene()
 
 Scene::~Scene()
 {
-	for(int i = 0; i < this->meshes.size(); ++i) {
+	for(unsigned int i = 0; i < this->meshes.size(); ++i) {
 		delete this->meshes[i];
 	}
 
-	for (int i = 0; i < this->lights.size(); ++i) {
+	for (unsigned int i = 0; i < this->lights.size(); ++i) {
 		delete this->lights[i];
 	}
 
-	for (int i = 0; i < this->materials.size(); ++i) {
+	for (unsigned int i = 0; i < this->materials.size(); ++i) {
 		delete this->materials[i];
 	}
 	delete this->camera;
