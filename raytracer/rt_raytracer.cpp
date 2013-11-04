@@ -11,6 +11,8 @@
 #include <stdio.h>
 #include <map>
 #include <vector>
+#include <algorithm>
+#include <limits>
 
 
 const float EPSILON = 0.00001;
@@ -154,7 +156,130 @@ void RayTracer::renderScene(const Scene& scene, int width, int height, unsigned 
 }
 #endif
 
-void RayTracer::trace(int rstart, int rend, int tstart, int tend)
+static bool _triCmpX(Tri a, Tri b) {return a.centroid[0] < b.centroid[0];}
+static bool _triCmpY(Tri a, Tri b) {return a.centroid[1] < b.centroid[1];}
+static bool _triCmpZ(Tri a, Tri b) {return a.centroid[2] < b.centroid[2];}
+
+static bool _ray_aabb_intersect(Ray ray, Eigen::Vector3f min, Eigen::Vector3f max)
+{
+	const char RIGHT = 0;
+	const char LEFT = 1;
+	const char MIDDLE = 2;
+
+	bool inside = true;
+	char quadrant[3];
+	int i;
+	int plane = 0;
+	float maxt[3];
+	float cand_plane[3];
+
+	for (i = 0; i < 3; i++) {
+		if (ray.origin[i] < min[i]) {
+			quadrant[i] = LEFT;
+			cand_plane[i] = min[i];
+			inside = false;
+		}
+		else if (ray.origin[i] > max[i]) {
+			quadrant[i] = RIGHT;
+			cand_plane[i] = max[i];
+			inside = false;
+		}
+		else {
+			quadrant[i] = MIDDLE;
+		}
+	}
+
+	if (inside) return true;
+
+	for (i = 0; i < 3; i++) {
+		if (quadrant[i] != MIDDLE && ray.direction[i] != 0.0)
+			maxt[i] = (cand_plane[i] - ray.origin[i]) / ray.direction[i];
+		else
+			maxt[i] = -1.0;
+	}
+
+	for (i = 1; i < 3; i++) {
+		if (maxt[plane] < maxt[i])
+			plane = i;
+	}
+
+	if (maxt[plane] < 0.0) return false;
+
+	for (i = 0; i < 3; i++) {
+		if (plane != i) {
+			float coord = ray.origin[i] + maxt[plane] * ray.direction[i];
+			if (coord < min[i] || coord > max[i])
+				return false;
+		}
+	}
+
+	return true;
+}
+
+void RayTracer::trace(int rstart, int rend, int tstart, int tend, Eigen::Vector3f min_bound, Eigen::Vector3f max_bound)
+{
+	if (rend-rstart < 20 || tend-tstart < 16)
+	{
+		naiveTrace(rstart, rend, tstart, tend);
+		return;
+	}
+
+	// Find largest axis to split
+	Eigen::Vector3f dims = max_bound - min_bound;
+	float max_dim = std::max(std::max(dims[0], dims[1]), dims[2]);
+	bool (*cmp_func)(Tri, Tri);
+	int split_axis;
+	if (dims[0] == max_dim) {
+		split_axis = 0;
+		cmp_func = &_triCmpX;
+	}
+	else if (dims[1] == max_dim) {
+		split_axis = 1;
+		cmp_func = &_triCmpY;
+	}
+	else {
+		split_axis = 2;
+		cmp_func = &_triCmpZ;
+	}
+
+	// Split triangles along split plane
+	int tmid = (tstart + tend) / 2;
+	std::nth_element(this->tris.begin()+tstart, this->tris.begin()+tmid, this->tris.begin()+tend, cmp_func);
+
+	// Split space
+	Eigen::Vector3f lmid_bound, umid_bound;
+	lmid_bound = max_bound;
+	umid_bound = min_bound;
+	lmid_bound[split_axis] = umid_bound[split_axis] = this->tris[tmid].v0[split_axis];
+	for (int t = tstart; t < tmid; t++) {
+		lmid_bound[split_axis] = std::max(lmid_bound[split_axis], std::max(this->tris[t].v0[split_axis], std::max(this->tris[t].v1[split_axis], this->tris[t].v2[split_axis])));
+	}
+	for (int t = tmid; t < tend; t++) {
+		umid_bound[split_axis] = std::min(umid_bound[split_axis], std::min(this->tris[t].v0[split_axis], std::min(this->tris[t].v1[split_axis], this->tris[t].v2[split_axis])));
+	}
+
+	// Filter Rays and continue tracing
+	int pivot;
+	Eigen::Vector3f min, max;
+	Eigen::Vector3f bounds[2][2] = {{min_bound, lmid_bound}, {umid_bound, max_bound}};
+	int tidx[] = {tstart, tmid, tend};
+	for (int space = 0; space < 2; space++) {
+		min = bounds[space][0];
+		max = bounds[space][1];
+		pivot = rend;
+		for (int i = rstart; i < rend; i++) {
+			if (!_ray_aabb_intersect(this->rays[i], min, max)) {
+				//Swap to rmid
+				std::swap(this->rays[pivot], this->rays[i]);
+				pivot--;
+			}
+		}
+		trace(rstart, pivot, tidx[space], tidx[space+1], min, max);
+//		naiveTrace(rstart, pivot, tidx[space], tidx[space+1]);
+	}
+}
+
+void RayTracer::naiveTrace(int rstart, int rend, int tstart, int tend)
 {
 	Eigen::Vector3f E1, E2, T, P, Q, D, O;
 	float det, inv_det, t, u, v;
@@ -240,6 +365,8 @@ void RayTracer::processRays(const Camera& camera, int count, Eigen::Vector3f *po
 	this->tris.clear();
 	Mesh* mesh;
 	Tri tri;
+	Eigen::Vector3f min_bounds, max_bounds;
+	min_bounds = max_bounds = this->meshes[0]->verts[0];
 	for (unsigned int i = 0; i < this->meshes.size(); i++) {
 		mesh = this->meshes[i];
 		for (unsigned int j = 0; j < mesh->num_faces; j++) {
@@ -255,11 +382,20 @@ void RayTracer::processRays(const Camera& camera, int count, Eigen::Vector3f *po
 			tri.e1 = tri.v1 - tri.v0;
 			tri.e2 = tri.v2 - tri.v0;
 			tri.material = mesh->material;
+			tri.centroid = (tri.v0 + tri.v1 + tri.v2) / 3.0;
 			this->tris.push_back(tri);
+
+			min_bounds[0] = std::min(min_bounds[0], std::min(std::min(tri.v0[0], tri.v1[0]), tri.v2[0]));
+			min_bounds[1] = std::min(min_bounds[1], std::min(std::min(tri.v0[1], tri.v1[1]), tri.v2[1]));
+			min_bounds[2] = std::min(min_bounds[2], std::min(std::min(tri.v0[2], tri.v1[2]), tri.v2[2]));
+
+			max_bounds[0] = std::max(max_bounds[0], std::max(std::max(tri.v0[0], tri.v1[0]), tri.v2[0]));
+			max_bounds[1] = std::max(max_bounds[1], std::max(std::max(tri.v0[1], tri.v1[1]), tri.v2[1]));
+			max_bounds[2] = std::max(max_bounds[2], std::max(std::max(tri.v0[2], tri.v1[2]), tri.v2[2]));
 		}
 	}
 
-	this->trace(0, count, 0, this->tris.size());
+	this->trace(0, count, 0, this->tris.size(), min_bounds, max_bounds);
 
 	int offset = 0;
 	for (ResultMap::iterator iter = result_map.begin(); iter != result_map.end(); iter++) {
