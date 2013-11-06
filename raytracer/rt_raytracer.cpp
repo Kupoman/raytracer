@@ -17,6 +17,33 @@
 
 const float EPSILON = 0.00001;
 
+struct DACTri{
+	Eigen::Vector3f min;
+	Eigen::Vector3f max;
+	unsigned int id;
+	int pad;
+};
+
+std::vector<DACTri> dac_tris;
+std::vector<Tri>* trilookup;
+
+struct DACRay{
+	Eigen::Vector3f origin;
+	Eigen::Vector3f direction;
+	float t;
+	unsigned int id;
+};
+std::vector<DACRay> dac_rays;
+
+struct DACRayResult{
+	float u;
+	float v;
+	unsigned int tidx;
+	unsigned int ridx;
+};
+
+std::vector<DACRayResult> dac_results;
+
 RayTracer::RayTracer()
 {
 	this->bounces = 2;
@@ -27,6 +54,7 @@ RayTracer::RayTracer()
 	this->photon_count = 10000;
 	this->photon_estimate = 100;
 	this->photon_radius = 1.0;
+	trilookup = &this->tris;
 }
 
 RayTracer::~RayTracer()
@@ -156,11 +184,11 @@ void RayTracer::renderScene(const Scene& scene, int width, int height, unsigned 
 }
 #endif
 
-static bool _triCmpX(Tri a, Tri b) {return a.centroid[0] < b.centroid[0];}
-static bool _triCmpY(Tri a, Tri b) {return a.centroid[1] < b.centroid[1];}
-static bool _triCmpZ(Tri a, Tri b) {return a.centroid[2] < b.centroid[2];}
+static bool _triCmpX(DACTri a, DACTri b) {return (*trilookup)[a.id].centroid[0] < (*trilookup)[b.id].centroid[0];}
+static bool _triCmpY(DACTri a, DACTri b) {return (*trilookup)[a.id].centroid[1] < (*trilookup)[b.id].centroid[1];}
+static bool _triCmpZ(DACTri a, DACTri b) {return (*trilookup)[a.id].centroid[2] < (*trilookup)[b.id].centroid[2];}
 
-static bool _ray_aabb_intersect(Ray ray, Eigen::Vector3f min, Eigen::Vector3f max)
+static bool _ray_aabb_intersect(DACRay ray, Eigen::Vector3f min, Eigen::Vector3f max)
 {
 	const char RIGHT = 0;
 	const char LEFT = 1;
@@ -227,7 +255,7 @@ void RayTracer::trace(int rstart, int rend, int tstart, int tend, Eigen::Vector3
 	// Find largest axis to split
 	Eigen::Vector3f dims = max_bound - min_bound;
 	float max_dim = std::max(std::max(dims[0], dims[1]), dims[2]);
-	bool (*cmp_func)(Tri, Tri);
+	bool (*cmp_func)(DACTri, DACTri);
 	int split_axis;
 	if (dims[0] == max_dim) {
 		split_axis = 0;
@@ -244,18 +272,18 @@ void RayTracer::trace(int rstart, int rend, int tstart, int tend, Eigen::Vector3
 
 	// Split triangles along split plane
 	int tmid = (tstart + tend) / 2;
-	std::nth_element(this->tris.begin()+tstart, this->tris.begin()+tmid, this->tris.begin()+tend, cmp_func);
+	std::nth_element(dac_tris.begin()+tstart, dac_tris.begin()+tmid, dac_tris.begin()+tend, cmp_func);
 
 	// Split space
 	Eigen::Vector3f lmid_bound, umid_bound;
 	lmid_bound = max_bound;
 	umid_bound = min_bound;
-	lmid_bound[split_axis] = umid_bound[split_axis] = this->tris[tmid].v0[split_axis];
+	lmid_bound[split_axis] = umid_bound[split_axis] = dac_tris[tmid].min[split_axis];
 	for (int t = tstart; t < tmid; t++) {
-		lmid_bound[split_axis] = std::max(lmid_bound[split_axis], std::max(this->tris[t].v0[split_axis], std::max(this->tris[t].v1[split_axis], this->tris[t].v2[split_axis])));
+		lmid_bound[split_axis] = std::max(lmid_bound[split_axis], dac_tris[t].max[split_axis]);
 	}
 	for (int t = tmid; t < tend; t++) {
-		umid_bound[split_axis] = std::min(umid_bound[split_axis], std::min(this->tris[t].v0[split_axis], std::min(this->tris[t].v1[split_axis], this->tris[t].v2[split_axis])));
+		umid_bound[split_axis] = std::min(umid_bound[split_axis], dac_tris[t].min[split_axis]);
 	}
 
 	// Filter Rays and continue tracing
@@ -268,9 +296,9 @@ void RayTracer::trace(int rstart, int rend, int tstart, int tend, Eigen::Vector3
 		max = bounds[space][1];
 		pivot = rend;
 		for (int i = rstart; i < rend; i++) {
-			if (!_ray_aabb_intersect(this->rays[i], min, max)) {
+			if (!_ray_aabb_intersect(dac_rays[i], min, max)) {
 				//Swap to rmid
-				std::swap(this->rays[pivot], this->rays[i]);
+				std::swap(dac_rays[pivot], dac_rays[i]);
 				pivot--;
 			}
 		}
@@ -283,58 +311,67 @@ void RayTracer::naiveTrace(int rstart, int rend, int tstart, int tend)
 {
 	Eigen::Vector3f E1, E2, T, P, Q, D, O;
 	float det, inv_det, t, u, v;
-	for (int ridx = rstart; ridx < rend; ridx++) {
-		D = this->rays[ridx].direction;
-		O = this->rays[ridx].origin;
+	unsigned int min_index;
+	Tri tri;
+	Ray ray;
 
-		float min_t = 1000000, min_u, min_v;
-		int min_index = -1;
-		for (int tidx = tstart; tidx < tend; tidx++) {
-				E1 = this->tris[tidx].e1;
-				E2 = this->tris[tidx].e2;
-				P = D.cross(E2);
+	for (unsigned int tidx = tstart; tidx < tend; tidx++) {
+		tri = this->tris[dac_tris[tidx].id];
 
-				det = P.dot(E1);
-				if (det < EPSILON)
-					continue;
+		for (unsigned int ridx = rstart; ridx < rend; ridx++) {
+			D = dac_rays[ridx].direction;
+			O = dac_rays[ridx].origin;
 
-				T = O - this->tris[tidx].v0;
-				u = T.dot(P);
+			tri = this->tris[dac_tris[tidx].id];
+			E1 = tri.e1;
+			E2 = tri.e2;
+			P = D.cross(E2);
 
-				if (u < 0 || u > det) continue;
+			det = P.dot(E1);
+			if (det < EPSILON)
+				continue;
 
-				Q = T.cross(E1);
-				v = D.dot(Q);
+			T = O - tri.v0;
+			u = T.dot(P);
 
-				if (v < 0 || u + v > det) continue;
+			if (u < 0 || u > det) continue;
 
-				t = E2.dot(Q);
-				inv_det = 1.0 / det;
+			Q = T.cross(E1);
+			v = D.dot(Q);
 
-				t *= inv_det;
-				u *= inv_det;
-				v *= inv_det;
+			if (v < 0 || u + v > det) continue;
 
-				if (t < EPSILON) continue;
+			t = E2.dot(Q);
+			inv_det = 1.0 / det;
 
-				if (t < min_t) {
-					min_t = t;
-					min_u = u;
-					min_v = v;
-					min_index = tidx;
-				}
+			t *= inv_det;
+			u *= inv_det;
+			v *= inv_det;
+
+			if (t < EPSILON) continue;
+
+			if (t < dac_rays[ridx].t) {
+				dac_rays[ridx].t = t;
+				dac_results[ridx].u = u;
+				dac_results[ridx].v = v;
+				dac_results[ridx].tidx = dac_tris[tidx].id;
+				dac_results[ridx].ridx = ridx;
 			}
+		}
+	}
 
-			if (min_index != -1) {
-				u = min_u;
-				v = min_v;
-				this->rays[ridx].position = (1 - u -v)*this->tris[min_index].v0 + u*this->tris[min_index].v1 + v*this->tris[min_index].v2;
-				this->rays[ridx].normal = (1 - u -v)*this->tris[min_index].n0 + u*this->tris[min_index].n1 + v*this->tris[min_index].n2;
-				this->rays[ridx].normal.normalize();
-				this->rays[ridx].texcoord = (1 - u -v)*this->tris[min_index].t0 + u*this->tris[min_index].t1 + v*this->tris[min_index].t2;
-				this->result_map[this->tris[min_index].material].push_back(this->rays[ridx]);
-			}
-
+	for (int i = rstart; i < rend; i++) {
+		if (dac_results[i].tidx == -1) continue;
+		u = dac_results[i].u;
+		v = dac_results[i].v;
+		min_index = dac_results[i].tidx;
+		ray.origin = dac_rays[dac_results[i].ridx].origin;
+		ray.direction = dac_rays[dac_results[i].ridx].direction;
+		ray.position = (1 - u -v)*this->tris[min_index].v0 + u*this->tris[min_index].v1 + v*this->tris[min_index].v2;
+		ray.normal = (1 - u -v)*this->tris[min_index].n0 + u*this->tris[min_index].n1 + v*this->tris[min_index].n2;
+		ray.normal.normalize();
+		ray.texcoord = (1 - u -v)*this->tris[min_index].t0 + u*this->tris[min_index].t1 + v*this->tris[min_index].t2;
+		this->result_map[this->tris[min_index].material].push_back(ray);
 	}
 }
 
@@ -348,9 +385,12 @@ void RayTracer::processRays(const Camera& camera, int count, Eigen::Vector3f *po
 	this->offset_vec.clear();
 	this->result_map.clear();
 
-	this->rays.clear();
+	dac_rays.clear();
+	dac_results.clear();
 
-	Ray ray;
+	DACRay ray;
+	DACRayResult result;
+	result.tidx = -1;
 	for (int i = 0; i < count; i++) {
 		direction = positions[i] - 2 * positions[i].dot(normals[i]) * normals[i];
 
@@ -358,13 +398,16 @@ void RayTracer::processRays(const Camera& camera, int count, Eigen::Vector3f *po
 		ray.direction = direction;
 		ray.origin = positions[i];
 
-//		result_map[material].push_back(Ray(ray));
-		this->rays.push_back(ray);
+		ray.t = std::numeric_limits<float>::infinity();
+		dac_rays.push_back(ray);
+		dac_results.push_back(result);
 	}
 
 	this->tris.clear();
+	dac_tris.clear();
 	Mesh* mesh;
 	Tri tri;
+	DACTri dtri;
 	Eigen::Vector3f min_bounds, max_bounds;
 	min_bounds = max_bounds = this->meshes[0]->verts[0];
 	for (unsigned int i = 0; i < this->meshes.size(); i++) {
@@ -385,17 +428,28 @@ void RayTracer::processRays(const Camera& camera, int count, Eigen::Vector3f *po
 			tri.centroid = (tri.v0 + tri.v1 + tri.v2) / 3.0;
 			this->tris.push_back(tri);
 
-			min_bounds[0] = std::min(min_bounds[0], std::min(std::min(tri.v0[0], tri.v1[0]), tri.v2[0]));
-			min_bounds[1] = std::min(min_bounds[1], std::min(std::min(tri.v0[1], tri.v1[1]), tri.v2[1]));
-			min_bounds[2] = std::min(min_bounds[2], std::min(std::min(tri.v0[2], tri.v1[2]), tri.v2[2]));
+			dtri.id = this->tris.size()-1;
+			dtri.min[0] = std::min(std::min(tri.v0[0], tri.v1[0]), tri.v2[0]);
+			dtri.min[1] = std::min(std::min(tri.v0[1], tri.v1[1]), tri.v2[1]);
+			dtri.min[2] = std::min(std::min(tri.v0[2], tri.v1[2]), tri.v2[2]);
 
-			max_bounds[0] = std::max(max_bounds[0], std::max(std::max(tri.v0[0], tri.v1[0]), tri.v2[0]));
-			max_bounds[1] = std::max(max_bounds[1], std::max(std::max(tri.v0[1], tri.v1[1]), tri.v2[1]));
-			max_bounds[2] = std::max(max_bounds[2], std::max(std::max(tri.v0[2], tri.v1[2]), tri.v2[2]));
+			dtri.max[0] = std::max(std::max(tri.v0[0], tri.v1[0]), tri.v2[0]);
+			dtri.max[1] = std::max(std::max(tri.v0[1], tri.v1[1]), tri.v2[1]);
+			dtri.max[2] = std::max(std::max(tri.v0[2], tri.v1[2]), tri.v2[2]);
+			dac_tris.push_back(dtri);
+
+			min_bounds[0] = std::min(min_bounds[0], dtri.min[0]);
+			min_bounds[1] = std::min(min_bounds[1], dtri.min[1]);
+			min_bounds[2] = std::min(min_bounds[2], dtri.min[2]);
+
+			max_bounds[0] = std::max(max_bounds[0], dtri.max[0]);
+			max_bounds[1] = std::max(max_bounds[1], dtri.max[1]);
+			max_bounds[2] = std::max(max_bounds[2], dtri.max[2]);
 		}
 	}
 
 	this->trace(0, count, 0, this->tris.size(), min_bounds, max_bounds);
+//	this->naiveTrace(0, count, 0, this->tris.size());
 
 	int offset = 0;
 	for (ResultMap::iterator iter = result_map.begin(); iter != result_map.end(); iter++) {

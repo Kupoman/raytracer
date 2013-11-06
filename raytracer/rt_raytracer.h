@@ -41,8 +41,6 @@ private:
 	std::vector<Ray> result_vec;
 	std::vector<ResultOffset> offset_vec;
 
-	std::vector<Ray> rays;
-
 	typedef std::map<Material*, std::vector<Ray> > ResultMap;
 	ResultMap result_map;
 	std::vector<Tri> tris;
