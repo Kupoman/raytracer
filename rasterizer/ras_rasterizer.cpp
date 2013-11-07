@@ -21,6 +21,10 @@ Rasterizer::Rasterizer()
 	this->prepass_depth_target = 0;
 	this->vao_raydata = 0;
 
+	this->frame_toggle = 0;
+	this->pbo_positions[0] = 0;
+	this->pbo_normals[0] = 0;
+
 	this->default_mat = new Material();
 	this->default_mat->diffuse_color = Eigen::Vector3f(0.5, 1.0, 0.0);
 	this->default_mat->texture = NULL;
@@ -125,7 +129,8 @@ static void projectionFromCamera(Camera* camera, float mat[4][4])
 
 void Rasterizer::beginFrame()
 {
-	//glGetError();
+//	glGetError();
+	this->frame_toggle ^= 1;
 	if (this->camera) {
 		projectionFromCamera(this->camera, this->proj_mat);
 
@@ -418,35 +423,74 @@ void Rasterizer::getRayTraceData(int *count, Eigen::Vector3f **positions, Eigen:
 {
 	*count = 0;
 	std::vector<int> frag_idx;
+	if (!this->pbo_positions[0]) {
+		int size = this->frame_height * this->frame_width * sizeof(float);
+		glGenBuffers(2, this->pbo_positions);
+		glBindBuffer(GL_PIXEL_PACK_BUFFER, this->pbo_positions[0]);
+		glBufferData(GL_PIXEL_PACK_BUFFER, size*3, NULL, GL_STREAM_READ);
+		glBindBuffer(GL_PIXEL_PACK_BUFFER, this->pbo_positions[1]);
+		glBufferData(GL_PIXEL_PACK_BUFFER, size*3, NULL, GL_STREAM_READ);
+
+		glGenBuffers(2, this->pbo_normals);
+		glBindBuffer(GL_PIXEL_PACK_BUFFER, this->pbo_normals[0]);
+		glBufferData(GL_PIXEL_PACK_BUFFER, size*4, NULL, GL_STREAM_READ);
+		glBindBuffer(GL_PIXEL_PACK_BUFFER, this->pbo_normals[1]);
+		glBufferData(GL_PIXEL_PACK_BUFFER, size*4, NULL, GL_STREAM_READ);
+	}
 
 	glBindFramebuffer(GL_FRAMEBUFFER, this->fbo_prepass);
+
+
+	glBindBuffer(GL_PIXEL_PACK_BUFFER, this->pbo_normals[this->frame_toggle]);
 	glReadBuffer(GL_COLOR_ATTACHMENT0);
-	glReadPixels(0, 0, this->frame_width, this->frame_height, GL_RGBA, GL_FLOAT, this->prepass_color0_buffer);
+	glReadPixels(0, 0, this->frame_width, this->frame_height, GL_RGBA, GL_FLOAT, 0);
+
+	glBindBuffer(GL_PIXEL_PACK_BUFFER, this->pbo_normals[this->frame_toggle ^ 1]);
+	this->prepass_color0_buffer = (float*)glMapBuffer(GL_PIXEL_PACK_BUFFER, GL_READ_ONLY);
+	if (!this->prepass_color0_buffer) {
+		fprintf(stderr, "Error mapping Color0 Buffer\n");
+		return;
+	}
+
 	for (int i = 0; i < this->frame_width * this->frame_height; i++) {
 		if (this->prepass_color0_buffer[i*4 +3] > 0.0) {
 			frag_idx.push_back(i);
 		}
 	}
+
 	*count = frag_idx.size();
-
-	glReadBuffer(GL_COLOR_ATTACHMENT1);
-	glReadPixels(0, 0, this->frame_width, this->frame_height, GL_RGB, GL_FLOAT, this->prepass_color1_buffer);
-
 	*positions = this->position_transfer_buffer;
 	*normals = this->normal_transfer_buffer;
 
+	int idx;
 	for (int i = 0; i < *count; i++) {
-		int idx = frag_idx[i];
-
+		idx = frag_idx[i];
 		(*normals)[i][0] = this->prepass_color0_buffer[idx*4 + 0] * 2.0 - 1.0;
 		(*normals)[i][1] = this->prepass_color0_buffer[idx*4 + 1] * 2.0 - 1.0;
 		(*normals)[i][2] = this->prepass_color0_buffer[idx*4 + 2] * 2.0 - 1.0;
+	}
+	glUnmapBuffer(GL_PIXEL_PACK_BUFFER);
 
+	glBindBuffer(GL_PIXEL_PACK_BUFFER, this->pbo_positions[this->frame_toggle]);
+	glReadBuffer(GL_COLOR_ATTACHMENT1);
+	glReadPixels(0, 0, this->frame_width, this->frame_height, GL_RGB, GL_FLOAT, 0);
+	glBindBuffer(GL_PIXEL_PACK_BUFFER, this->pbo_positions[this->frame_toggle^1]);
+	this->prepass_color1_buffer = (float*)glMapBuffer(GL_PIXEL_PACK_BUFFER, GL_READ_ONLY);
+
+	if (!this->prepass_color1_buffer) {
+		fprintf(stderr, "Error mapping Color1 Buffer\n");
+		return;
+	}
+
+	for (int i = 0; i < *count; i++) {
+		idx = frag_idx[i];
 		(*positions)[i][0] = this->prepass_color1_buffer[idx*3 + 0];
 		(*positions)[i][1] = this->prepass_color1_buffer[idx*3 + 1];
 		(*positions)[i][2] = this->prepass_color1_buffer[idx*3 + 2];
 	}
+	glUnmapBuffer(GL_PIXEL_PACK_BUFFER);
 
+	glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 

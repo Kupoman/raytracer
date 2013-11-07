@@ -43,6 +43,9 @@ private:
 	unsigned int fbo_raypass;
 	Material* default_mat;
 
+	unsigned char frame_toggle;
+	unsigned int pbo_positions[2];
+	unsigned int pbo_normals[2];
 	Eigen::Vector3f *position_transfer_buffer;
 	Eigen::Vector3f *normal_transfer_buffer;
 
