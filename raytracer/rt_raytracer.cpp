@@ -39,7 +39,10 @@ struct DACRayResult{
 	float u;
 	float v;
 	unsigned int tidx;
-	unsigned int ridx;
+	Eigen::Vector3f origin;
+	Eigen::Vector3f direction;
+	float t;
+
 };
 
 std::vector<DACRayResult> dac_results;
@@ -189,6 +192,24 @@ static bool _triCmpY(DACTri a, DACTri b) {return (*trilookup)[a.id].centroid[1] 
 static bool _triCmpZ(DACTri a, DACTri b) {return (*trilookup)[a.id].centroid[2] < (*trilookup)[b.id].centroid[2];}
 
 static bool _ray_aabb_intersect(DACRay ray, Eigen::Vector3f min, Eigen::Vector3f max)
+#if 0
+{
+	Eigen::Vector3f tmin = (min - ray.origin).array() / ray.direction.array();
+	Eigen::Vector3f tmax = (max - ray.origin).array() / ray.direction.array();
+
+	if (tmin[0] > tmax[0]) std::swap(tmin[0], tmax[0]);
+	if (tmin[1] > tmax[1]) std::swap(tmin[1], tmax[1]);
+
+	if ((tmin[0] > tmax[1]) || (tmin[1] > tmax[0]))
+		return false;
+
+	if (tmin[2] > tmax[2]) std::swap(tmin[2], tmax[2]);
+	if ((tmin[0] > tmax[2]) || (tmin[2] > tmax[0]))
+		return false;
+
+	return true;
+}
+#else
 {
 	const char RIGHT = 0;
 	const char LEFT = 1;
@@ -243,10 +264,11 @@ static bool _ray_aabb_intersect(DACRay ray, Eigen::Vector3f min, Eigen::Vector3f
 
 	return true;
 }
+#endif
 
 void RayTracer::trace(int rstart, int rend, int tstart, int tend, Eigen::Vector3f min_bound, Eigen::Vector3f max_bound)
 {
-	if (rend-rstart < 20 || tend-tstart < 16)
+	if (rend-rstart < 8 || tend-tstart < 8)
 	{
 		naiveTrace(rstart, rend, tstart, tend);
 		return;
@@ -351,27 +373,16 @@ void RayTracer::naiveTrace(int rstart, int rend, int tstart, int tend)
 			if (t < EPSILON) continue;
 
 			if (t < dac_rays[ridx].t) {
+				int result_id = dac_rays[ridx].id;
 				dac_rays[ridx].t = t;
-				dac_results[ridx].u = u;
-				dac_results[ridx].v = v;
-				dac_results[ridx].tidx = dac_tris[tidx].id;
-				dac_results[ridx].ridx = ridx;
+				dac_results[result_id].u = u;
+				dac_results[result_id].v = v;
+				dac_results[result_id].tidx = dac_tris[tidx].id;
+				dac_results[result_id].origin = O;
+				dac_results[result_id].direction = D;
+				dac_results[result_id].t = t;
 			}
 		}
-	}
-
-	for (int i = rstart; i < rend; i++) {
-		if (dac_results[i].tidx == -1) continue;
-		u = dac_results[i].u;
-		v = dac_results[i].v;
-		min_index = dac_results[i].tidx;
-		ray.origin = dac_rays[dac_results[i].ridx].origin;
-		ray.direction = dac_rays[dac_results[i].ridx].direction;
-		ray.position = (1 - u -v)*this->tris[min_index].v0 + u*this->tris[min_index].v1 + v*this->tris[min_index].v2;
-		ray.normal = (1 - u -v)*this->tris[min_index].n0 + u*this->tris[min_index].n1 + v*this->tris[min_index].n2;
-		ray.normal.normalize();
-		ray.texcoord = (1 - u -v)*this->tris[min_index].t0 + u*this->tris[min_index].t1 + v*this->tris[min_index].t2;
-		this->result_map[this->tris[min_index].material].push_back(ray);
 	}
 }
 
@@ -399,6 +410,7 @@ void RayTracer::processRays(const Camera& camera, int count, Eigen::Vector3f *po
 		ray.origin = positions[i];
 
 		ray.t = std::numeric_limits<float>::infinity();
+		ray.id = i;
 		dac_rays.push_back(ray);
 		dac_results.push_back(result);
 	}
@@ -450,6 +462,23 @@ void RayTracer::processRays(const Camera& camera, int count, Eigen::Vector3f *po
 
 	this->trace(0, count, 0, this->tris.size(), min_bounds, max_bounds);
 //	this->naiveTrace(0, count, 0, this->tris.size());
+
+	float u, v;
+	int min_index;
+	Ray result_ray;
+	for (int i = 0; i < count; i++) {
+		if (dac_results[i].tidx == -1) continue;
+		u = dac_results[i].u;
+		v = dac_results[i].v;
+		min_index = dac_results[i].tidx;
+		result_ray.origin = dac_results[i].origin;
+		result_ray.direction = dac_results[i].direction;
+		result_ray.position = (1 - u -v)*this->tris[min_index].v0 + u*this->tris[min_index].v1 + v*this->tris[min_index].v2;
+		result_ray.normal = (1 - u -v)*this->tris[min_index].n0 + u*this->tris[min_index].n1 + v*this->tris[min_index].n2;
+		result_ray.normal.normalize();
+		result_ray.texcoord = (1 - u -v)*this->tris[min_index].t0 + u*this->tris[min_index].t1 + v*this->tris[min_index].t2;
+		this->result_map[this->tris[min_index].material].push_back(result_ray);
+	}
 
 	int offset = 0;
 	for (ResultMap::iterator iter = result_map.begin(); iter != result_map.end(); iter++) {
