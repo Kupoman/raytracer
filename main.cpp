@@ -22,7 +22,7 @@ typedef Eigen::Matrix<unsigned char, 3, 1> EigenColor3;
 
 const int WINDOW_WIDTH = 800;
 const int WINDOW_HEIGHT = 600;
-const int FPS_UPDATE = 30;
+const int FPS_UPDATE = 10;
 
 const unsigned int point_count = WINDOW_WIDTH*WINDOW_HEIGHT;
 
@@ -202,7 +202,7 @@ int main(int argc, char **argv)
 	glutInitWindowPosition(100, 100);
 	glutInitWindowSize(WINDOW_WIDTH, WINDOW_HEIGHT);
 
-	glutCreateWindow("Ray Tracer");
+	glutCreateWindow("Fafnir");
 
 
 	glutDisplayFunc(draw);
