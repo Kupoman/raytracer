@@ -297,15 +297,32 @@ void RayTracer::trace(int rstart, int rend, int tstart, int tend, Eigen::Vector3
 	std::nth_element(dac_tris.begin()+tstart, dac_tris.begin()+tmid, dac_tris.begin()+tend, cmp_func);
 
 	// Split space
+	float inf = std::numeric_limits<float>::infinity();
 	Eigen::Vector3f lmid_bound, umid_bound;
-	lmid_bound = max_bound;
-	umid_bound = min_bound;
-	lmid_bound[split_axis] = umid_bound[split_axis] = dac_tris[tmid].min[split_axis];
+	min_bound = Eigen::Vector3f(inf, inf, inf);
+	lmid_bound = Eigen::Vector3f(-inf, -inf, -inf);
+	umid_bound = Eigen::Vector3f(inf, inf, inf);
+	max_bound = Eigen::Vector3f(-inf, -inf, -inf);
+	DACTri dtri;
 	for (int t = tstart; t < tmid; t++) {
-		lmid_bound[split_axis] = std::max(lmid_bound[split_axis], dac_tris[t].max[split_axis]);
+		dtri = dac_tris[t];
+		min_bound[0] = std::min(min_bound[0], dtri.min[0]);
+		min_bound[1] = std::min(min_bound[1], dtri.min[1]);
+		min_bound[2] = std::min(min_bound[2], dtri.min[2]);
+
+		lmid_bound[0] = std::max(lmid_bound[0], dtri.max[0]);
+		lmid_bound[1] = std::max(lmid_bound[1], dtri.max[1]);
+		lmid_bound[2] = std::max(lmid_bound[2], dtri.max[2]);
 	}
 	for (int t = tmid; t < tend; t++) {
-		umid_bound[split_axis] = std::min(umid_bound[split_axis], dac_tris[t].min[split_axis]);
+		dtri = dac_tris[t];
+		umid_bound[0] = std::min(umid_bound[0], dtri.min[0]);
+		umid_bound[1] = std::min(umid_bound[1], dtri.min[1]);
+		umid_bound[2] = std::min(umid_bound[2], dtri.min[2]);
+
+		max_bound[0] = std::max(max_bound[0], dtri.max[0]);
+		max_bound[1] = std::max(max_bound[1], dtri.max[1]);
+		max_bound[2] = std::max(max_bound[2], dtri.max[2]);
 	}
 
 	// Filter Rays and continue tracing
