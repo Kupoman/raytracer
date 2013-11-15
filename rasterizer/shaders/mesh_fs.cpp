@@ -11,6 +11,7 @@ uniform Light lights[LIGHT_COUNT];\n\
 uniform int lightCount;\n\
 uniform sampler2D raypassBuffer;\n\
 uniform sampler2D lightBuffer;\n\
+uniform vec2 frame_size;\n\
 smooth in vec2 outCoord;\n\
 smooth in vec3 outNorm;\n\
 smooth in vec3 outPos;\n\
@@ -42,7 +43,7 @@ void main()\n\
 			phong = pow(clamp(dot(N, H), 0.0, 1.0), material_shininess);\n\
 			direct = energy * albedo * lambert + energy * material_scolor * phong + direct;\n\
 	}\n\
-	vec3 reflection = texelFetch(raypassBuffer, ivec2(gl_FragCoord.st), 0).rgb;\n\
+	vec3 reflection = texture2D(raypassBuffer, gl_FragCoord.st/frame_size).rgb;\n\
 	vec3 color = material_reflectivity*reflection + (1.0-material_reflectivity)*direct;\n\
 	fragColor = vec4(color, 1.0);\n\
 }\n\

@@ -29,6 +29,10 @@ private:
 
 	std::map<class Texture*, unsigned int> textures;
 
+	float prepass_resolution;
+	int prepass_width;
+	int prepass_height;
+
 	unsigned int prepass_color0_target;
 	float *prepass_color0_buffer;
 	unsigned int prepass_color1_target;
