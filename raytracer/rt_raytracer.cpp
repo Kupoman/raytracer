@@ -333,7 +333,7 @@ void RayTracer::trace(int rstart, int rend, int tstart, int tend, Eigen::Vector3
 	for (int space = 0; space < 2; space++) {
 		min = bounds[space][0];
 		max = bounds[space][1];
-		pivot = rend;
+		pivot = rend - 1;
 		for (int i = rstart; i < rend; i++) {
 			if (!_ray_aabb_intersect(dac_rays[i], min, max)) {
 				//Swap to rmid
@@ -341,6 +341,7 @@ void RayTracer::trace(int rstart, int rend, int tstart, int tend, Eigen::Vector3
 				pivot--;
 			}
 		}
+		pivot = std::max(pivot, 0);
 		trace(rstart, pivot, tidx[space], tidx[space+1], min, max);
 //		naiveTrace(rstart, pivot, tidx[space], tidx[space+1]);
 	}
