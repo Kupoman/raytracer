@@ -12,8 +12,12 @@
 #include "ras_mesh.h"
 #include "ras_vertex.h"
 
+#define USE_PBOS
+
 Rasterizer::Rasterizer()
 {
+	this->camera = NULL;
+
 	this->shader_programs["MESH"] = 0;
 	this->shader_programs["PREPASS"] = 0;
 
@@ -29,6 +33,7 @@ Rasterizer::Rasterizer()
 	this->default_mat->diffuse_color = Eigen::Vector3f(0.5, 1.0, 0.0);
 	this->default_mat->texture = NULL;
 
+	this->frame_width = this->frame_height= -1;
 	this->prepass_resolution = 1.0;
 }
 
@@ -41,6 +46,11 @@ Rasterizer::~Rasterizer()
 
 	delete [] this->position_transfer_buffer;
 	delete [] this->normal_transfer_buffer;
+
+#ifndef USE_PBOS
+	delete [] this->prepass_color0_buffer;
+	delete [] this->prepass_color1_buffer;
+#endif
 }
 
 static void printInfoLog(GLhandleARB obj)
@@ -143,8 +153,8 @@ void Rasterizer::beginFrame()
 			this->frame_height = this->camera->getHeight();
 			this->prepass_width = this->prepass_resolution * this->frame_width;
 			this->prepass_height = this->prepass_resolution * this->frame_height;
-			this->prepass_color0_buffer = new float[this->prepass_width * this->prepass_height * 4];
-			this->prepass_color1_buffer = new float[this->prepass_width * this->prepass_height * 3];
+//			this->prepass_color0_buffer = new float[this->prepass_width * this->prepass_height * 4];
+//			this->prepass_color1_buffer = new float[this->prepass_width * this->prepass_height * 3];
 
 			this->position_transfer_buffer = new Eigen::Vector3f[this->prepass_width * this->prepass_height];
 			this->normal_transfer_buffer = new Eigen::Vector3f[this->prepass_width * this->prepass_height];
@@ -435,7 +445,10 @@ void Rasterizer::getRayTraceData(int *count, Eigen::Vector3f **positions, Eigen:
 	*count = 0;
 	std::vector<int> frag_idx;
 	if (!this->pbo_positions[0]) {
-		int size = this->prepass_height * this->prepass_width * sizeof(float);
+		int size = this->prepass_height * this->prepass_width;
+
+#ifdef USE_PBOS
+		size *= sizeof(float);
 		glGenBuffers(2, this->pbo_positions);
 		glBindBuffer(GL_PIXEL_PACK_BUFFER, this->pbo_positions[0]);
 		glBufferData(GL_PIXEL_PACK_BUFFER, size*3, NULL, GL_STREAM_READ);
@@ -447,25 +460,32 @@ void Rasterizer::getRayTraceData(int *count, Eigen::Vector3f **positions, Eigen:
 		glBufferData(GL_PIXEL_PACK_BUFFER, size*4, NULL, GL_STREAM_READ);
 		glBindBuffer(GL_PIXEL_PACK_BUFFER, this->pbo_normals[1]);
 		glBufferData(GL_PIXEL_PACK_BUFFER, size*4, NULL, GL_STREAM_READ);
+#else
+		this->prepass_color0_buffer = new float[size*4];
+		this->prepass_color1_buffer = new float[size*3];
+#endif
 	}
 
 	glBindFramebuffer(GL_FRAMEBUFFER, this->fbo_prepass);
 
-
+#ifdef USE_PBOS
 	glBindBuffer(GL_PIXEL_PACK_BUFFER, this->pbo_normals[this->frame_toggle]);
 	glReadBuffer(GL_COLOR_ATTACHMENT0);
 	glReadPixels(0, 0, this->prepass_width, this->prepass_height, GL_RGBA, GL_FLOAT, 0);
-
 	glBindBuffer(GL_PIXEL_PACK_BUFFER, this->pbo_normals[this->frame_toggle ^ 1]);
 	this->prepass_color0_buffer = (float*)glMapBuffer(GL_PIXEL_PACK_BUFFER, GL_READ_ONLY);
 	if (!this->prepass_color0_buffer) {
 		fprintf(stderr, "Error mapping Color0 Buffer\n");
 		return;
 	}
+#else
+	glReadBuffer(GL_COLOR_ATTACHMENT0);
+	glReadPixels(0, 0, this->prepass_width, this->prepass_height, GL_RGBA, GL_FLOAT, this->prepass_color0_buffer);
+#endif
 
 	int line_number = 0;
 	for (int i = 0; i < this->prepass_width * this->prepass_height; i++) {
-		if (this->prepass_color0_buffer[i*4 +3] > 0.0) {
+		if (this->prepass_color0_buffer[i*4 +3] > 0.0f) {
 			frag_idx.push_back(i);
 		}
 
@@ -487,6 +507,8 @@ void Rasterizer::getRayTraceData(int *count, Eigen::Vector3f **positions, Eigen:
 		(*normals)[i][1] = this->prepass_color0_buffer[idx*4 + 1] * 2.0 - 1.0;
 		(*normals)[i][2] = this->prepass_color0_buffer[idx*4 + 2] * 2.0 - 1.0;
 	}
+
+#ifdef USE_PBOS
 	glUnmapBuffer(GL_PIXEL_PACK_BUFFER);
 
 	glBindBuffer(GL_PIXEL_PACK_BUFFER, this->pbo_positions[this->frame_toggle]);
@@ -494,6 +516,10 @@ void Rasterizer::getRayTraceData(int *count, Eigen::Vector3f **positions, Eigen:
 	glReadPixels(0, 0, this->prepass_width, this->prepass_height, GL_RGB, GL_FLOAT, 0);
 	glBindBuffer(GL_PIXEL_PACK_BUFFER, this->pbo_positions[this->frame_toggle^1]);
 	this->prepass_color1_buffer = (float*)glMapBuffer(GL_PIXEL_PACK_BUFFER, GL_READ_ONLY);
+#else
+	glReadBuffer(GL_COLOR_ATTACHMENT1);
+	glReadPixels(0, 0, this->prepass_width, this->prepass_height, GL_RGB, GL_FLOAT, this->prepass_color1_buffer);
+#endif
 
 	if (!this->prepass_color1_buffer) {
 		fprintf(stderr, "Error mapping Color1 Buffer\n");
@@ -506,9 +532,11 @@ void Rasterizer::getRayTraceData(int *count, Eigen::Vector3f **positions, Eigen:
 		(*positions)[i][1] = this->prepass_color1_buffer[idx*3 + 1];
 		(*positions)[i][2] = this->prepass_color1_buffer[idx*3 + 2];
 	}
+#ifdef USE_PBOS
 	glUnmapBuffer(GL_PIXEL_PACK_BUFFER);
 
 	glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
+#endif
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
