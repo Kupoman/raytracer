@@ -15,7 +15,7 @@
 #include <limits>
 
 
-const float EPSILON = 0.00001;
+const float EPSILON = std::numeric_limits<float>::epsilon();
 
 struct DACTri{
 	Eigen::Vector3f min;
@@ -187,29 +187,11 @@ void RayTracer::renderScene(const Scene& scene, int width, int height, unsigned 
 }
 #endif
 
-static bool _triCmpX(DACTri a, DACTri b) {return (*trilookup)[a.id].centroid[0] < (*trilookup)[b.id].centroid[0];}
-static bool _triCmpY(DACTri a, DACTri b) {return (*trilookup)[a.id].centroid[1] < (*trilookup)[b.id].centroid[1];}
-static bool _triCmpZ(DACTri a, DACTri b) {return (*trilookup)[a.id].centroid[2] < (*trilookup)[b.id].centroid[2];}
+static bool _triCmpX(DACTri a, DACTri b) {return (*trilookup)[a.id].centroid[0] > (*trilookup)[b.id].centroid[0];}
+static bool _triCmpY(DACTri a, DACTri b) {return (*trilookup)[a.id].centroid[1] > (*trilookup)[b.id].centroid[1];}
+static bool _triCmpZ(DACTri a, DACTri b) {return (*trilookup)[a.id].centroid[2] > (*trilookup)[b.id].centroid[2];}
 
 static bool _ray_aabb_intersect(DACRay ray, Eigen::Vector3f min, Eigen::Vector3f max)
-#if 0
-{
-	Eigen::Vector3f tmin = (min - ray.origin).array() / ray.direction.array();
-	Eigen::Vector3f tmax = (max - ray.origin).array() / ray.direction.array();
-
-	if (tmin[0] > tmax[0]) std::swap(tmin[0], tmax[0]);
-	if (tmin[1] > tmax[1]) std::swap(tmin[1], tmax[1]);
-
-	if ((tmin[0] > tmax[1]) || (tmin[1] > tmax[0]))
-		return false;
-
-	if (tmin[2] > tmax[2]) std::swap(tmin[2], tmax[2]);
-	if ((tmin[0] > tmax[2]) || (tmin[2] > tmax[0]))
-		return false;
-
-	return true;
-}
-#else
 {
 	const char RIGHT = 0;
 	const char LEFT = 1;
@@ -264,7 +246,6 @@ static bool _ray_aabb_intersect(DACRay ray, Eigen::Vector3f min, Eigen::Vector3f
 
 	return true;
 }
-#endif
 
 void RayTracer::trace(int rstart, int rend, int tstart, int tend, Eigen::Vector3f min_bound, Eigen::Vector3f max_bound)
 {
@@ -298,50 +279,34 @@ void RayTracer::trace(int rstart, int rend, int tstart, int tend, Eigen::Vector3
 
 	// Split space
 	float inf = std::numeric_limits<float>::infinity();
-	Eigen::Vector3f lmid_bound, umid_bound;
-	min_bound = Eigen::Vector3f(inf, inf, inf);
-	lmid_bound = Eigen::Vector3f(-inf, -inf, -inf);
-	umid_bound = Eigen::Vector3f(inf, inf, inf);
-	max_bound = Eigen::Vector3f(-inf, -inf, -inf);
 	DACTri dtri;
-	for (int t = tstart; t < tmid; t++) {
-		dtri = dac_tris[t];
-		min_bound[0] = std::min(min_bound[0], dtri.min[0]);
-		min_bound[1] = std::min(min_bound[1], dtri.min[1]);
-		min_bound[2] = std::min(min_bound[2], dtri.min[2]);
-
-		lmid_bound[0] = std::max(lmid_bound[0], dtri.max[0]);
-		lmid_bound[1] = std::max(lmid_bound[1], dtri.max[1]);
-		lmid_bound[2] = std::max(lmid_bound[2], dtri.max[2]);
-	}
-	for (int t = tmid; t < tend; t++) {
-		dtri = dac_tris[t];
-		umid_bound[0] = std::min(umid_bound[0], dtri.min[0]);
-		umid_bound[1] = std::min(umid_bound[1], dtri.min[1]);
-		umid_bound[2] = std::min(umid_bound[2], dtri.min[2]);
-
-		max_bound[0] = std::max(max_bound[0], dtri.max[0]);
-		max_bound[1] = std::max(max_bound[1], dtri.max[1]);
-		max_bound[2] = std::max(max_bound[2], dtri.max[2]);
-	}
 
 	// Filter Rays and continue tracing
-	int pivot;
 	Eigen::Vector3f min, max;
-	Eigen::Vector3f bounds[2][2] = {{min_bound, lmid_bound}, {umid_bound, max_bound}};
 	int tidx[] = {tstart, tmid, tend};
 	for (int space = 0; space < 2; space++) {
-		min = bounds[space][0];
-		max = bounds[space][1];
-		pivot = rend - 1;
-		for (int i = rstart; i < rend; i++) {
+		min = dac_tris[tidx[space]].min;
+		max = dac_tris[tidx[space]].max;
+		for (int t = tidx[space]; t < tidx[space+1]; t++) {
+			dtri = dac_tris[t];
+			min[0] = std::min(min[0], dtri.min[0]);
+			min[1] = std::min(min[1], dtri.min[1]);
+			min[2] = std::min(min[2], dtri.min[2]);
+
+			max[0] = std::max(max[0], dtri.max[0]);
+			max[1] = std::max(max[1], dtri.max[1]);
+			max[2] = std::max(max[2], dtri.max[2]);
+		}
+		int pivot = rend;
+		for (int i = rstart; i < pivot; i++) {
 			if (!_ray_aabb_intersect(dac_rays[i], min, max)) {
 				//Swap to rmid
-				std::swap(dac_rays[pivot], dac_rays[i]);
+				std::swap(dac_rays[pivot-1], dac_rays[i]);
 				pivot--;
+				i--;
 			}
 		}
-		pivot = std::max(pivot, 0);
+
 		trace(rstart, pivot, tidx[space], tidx[space+1], min, max);
 //		naiveTrace(rstart, pivot, tidx[space], tidx[space+1]);
 	}
@@ -404,6 +369,55 @@ void RayTracer::naiveTrace(int rstart, int rend, int tstart, int tend)
 	}
 }
 
+
+static void _test_aabb_intersection()
+{
+	Eigen::Vector3f min = Eigen::Vector3f(-1.0, -1.0, -1.0);
+	Eigen::Vector3f max = Eigen::Vector3f(1.0, 1.0, 1.0);
+
+	DACRay ray;
+
+	ray.origin = Eigen::Vector3f(0.0, 0.0, 0.0);
+	for (int i = 0; i < 6; i++) {
+		ray.direction = Eigen::Vector3f(0.0, 0.0, 0.0);
+		ray.direction[i%3] = (i < 3) ? 1.0 : -1.0;
+		if (!_ray_aabb_intersect(ray, min , max))
+			fprintf(stderr, "Failed origin test %d\n", i);
+	}
+
+	for (int i = 0; i < 6; i++) {
+		ray.origin = Eigen::Vector3f(0.0, 0.0, 0.0);
+		ray.origin[i%3] = (i < 3) ? -5.0 : 5.0;
+		ray.direction = -ray.origin;
+		if (!_ray_aabb_intersect(ray, min , max))
+			fprintf(stderr, "Failed axis test %d\n", i);
+	}
+
+	for (int i = 0; i < 1000; i++) {
+		ray.origin = Eigen::Vector3f(std::rand()/std::numeric_limits<int>::max(), std::rand()/std::numeric_limits<int>::max(), std::rand()/std::numeric_limits<int>::max());
+		ray.direction = -ray.origin.normalized() * 10;
+		if (!_ray_aabb_intersect(ray, min , max))
+			fprintf(stderr, "Failed random to center test %.2f %.2f %.2f\n", ray.origin[0], ray.origin[1], ray.origin[2]);
+	}
+
+	for (int i = 0; i < 1000; i++) {
+		ray.origin = Eigen::Vector3f((float)std::rand()/std::numeric_limits<int>::max(), (float)std::rand()/std::numeric_limits<int>::max(), (float)std::rand()/std::numeric_limits<int>::max());
+		ray.origin += Eigen::Vector3f(1.0, 1.0, 1.0);
+		ray.origin *= 5.0;
+		ray.direction = ray.origin.normalized();
+		if (_ray_aabb_intersect(ray, min , max))
+			fprintf(stderr, "Failed random away fail test %.2f %.2f %.2f\n", ray.origin[0], ray.origin[1], ray.origin[2]);
+	}
+
+	for (int i = 0; i < 1000; i++) {
+		ray.origin = Eigen::Vector3f(0.0, 0.0, 2.0);
+		ray.direction = Eigen::Vector3f((float)std::rand()/std::numeric_limits<int>::max(), (float)std::rand()/std::numeric_limits<int>::max(), -1.0);
+		ray.direction.normalize();
+		if (!_ray_aabb_intersect(ray, min , max))
+			fprintf(stderr, "Failed random blast test %.2f %.2f %.2f\n", ray.direction[0], ray.direction[1], ray.direction[2]);
+	}
+}
+
 void RayTracer::processRays(const Camera& camera, int count, Eigen::Vector3f *positions, Eigen::Vector3f *normals, Ray **results, ResultOffset **result_offsets, int *out_result_count, int *out_material_count)
 {
 	Eigen::Vector3f direction;
@@ -424,7 +438,7 @@ void RayTracer::processRays(const Camera& camera, int count, Eigen::Vector3f *po
 		direction = positions[i] - 2 * positions[i].dot(normals[i]) * normals[i];
 
 		// Needs to be multiplied by the inverse view matrix!
-		ray.direction = direction;
+		ray.direction = direction.normalized();
 		ray.origin = positions[i];
 
 		ray.t = std::numeric_limits<float>::infinity();
@@ -458,7 +472,7 @@ void RayTracer::processRays(const Camera& camera, int count, Eigen::Vector3f *po
 			tri.centroid = (tri.v0 + tri.v1 + tri.v2) / 3.0;
 			this->tris.push_back(tri);
 
-			dtri.id = this->tris.size()-1;
+			dtri.id = dac_tris.size();
 			dtri.min[0] = std::min(std::min(tri.v0[0], tri.v1[0]), tri.v2[0]);
 			dtri.min[1] = std::min(std::min(tri.v0[1], tri.v1[1]), tri.v2[1]);
 			dtri.min[2] = std::min(std::min(tri.v0[2], tri.v1[2]), tri.v2[2]);
@@ -477,6 +491,8 @@ void RayTracer::processRays(const Camera& camera, int count, Eigen::Vector3f *po
 			max_bounds[2] = std::max(max_bounds[2], dtri.max[2]);
 		}
 	}
+
+	trilookup = &this->tris;
 
 	this->trace(0, count, 0, this->tris.size(), min_bounds, max_bounds);
 //	this->naiveTrace(0, count, 0, this->tris.size());
