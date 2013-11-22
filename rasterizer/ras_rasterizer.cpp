@@ -13,6 +13,7 @@
 #include "ras_vertex.h"
 
 #define USE_PBOS
+#define INTERLEAVE
 
 Rasterizer::Rasterizer()
 {
@@ -34,7 +35,7 @@ Rasterizer::Rasterizer()
 	this->default_mat->texture = NULL;
 
 	this->frame_width = this->frame_height= -1;
-	this->prepass_resolution = 1.0;
+	this->prepass_resolution = 0.75;
 }
 
 Rasterizer::~Rasterizer()
@@ -51,6 +52,17 @@ Rasterizer::~Rasterizer()
 	delete [] this->prepass_color0_buffer;
 	delete [] this->prepass_color1_buffer;
 #endif
+
+	glDeleteTextures(1, &this->prepass_color0_target);
+	glDeleteTextures(1, &this->prepass_color1_target);
+	glDeleteTextures(1, &this->prepass_depth_target);
+	glDeleteTextures(1, &this->raypass_target);
+
+	glDeleteFramebuffers(1, &this->fbo_prepass);
+	glDeleteFramebuffers(1, &this->fbo_raypass);
+
+	glDeleteBuffers(2, this->pbo_normals);
+	glDeleteBuffers(2, this->pbo_positions);
 }
 
 static void printInfoLog(GLhandleARB obj)
@@ -271,24 +283,24 @@ void Rasterizer::initPrepass()
 	glGenTextures(1, &this->prepass_color0_target);
 	glBindTexture(GL_TEXTURE_2D, this->prepass_color0_target);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB10_A2, this->prepass_width, this->prepass_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, this->prepass_color0_target, 0);
 
 	// Position Buffer
 	glGenTextures(1, &this->prepass_color1_target);
 	glBindTexture(GL_TEXTURE_2D, this->prepass_color1_target);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, this->prepass_width, this->prepass_height, 0, GL_RGB, GL_HALF_FLOAT, NULL);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, this->prepass_color1_target, 0);
 
 	// Depth Buffer
 	glGenTextures(1, &this->prepass_depth_target);
 	glBindTexture(GL_TEXTURE_2D, this->prepass_depth_target);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32F, this->prepass_width, this->prepass_height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, this->prepass_depth_target, 0);
 
 	// Make sure everything is fine
@@ -489,11 +501,13 @@ void Rasterizer::getRayTraceData(int *count, Eigen::Vector3f **positions, Eigen:
 			frag_idx.push_back(i);
 		}
 
+#ifdef INTERLEAVE
 		if (i%this->prepass_width == 0) {
 			line_number++;
 			if (line_number%2 ==  this->frame_toggle)
 				i += this->prepass_width;
 		}
+#endif
 	}
 
 	*count = frag_idx.size();
@@ -600,7 +614,7 @@ void Rasterizer::drawRayData(Ray *results, ResultOffset *result_offsets, int res
 	glViewport(0, 0, this->prepass_width, this->prepass_height);
 	glBindVertexArray(this->vao_raydata);
 
-	glClearColor(0.5, 1.0, 0.0, 1.0);
+	glClearColor(0.0, 1.0, 1.0, 1.0);
 //	glClear(GL_COLOR_BUFFER_BIT);
 	glDisable(GL_DEPTH_TEST);
 	glUseProgram(this->shader_programs["MESH"]);
