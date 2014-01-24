@@ -13,7 +13,7 @@
 #include "ras_vertex.h"
 
 #define USE_PBOS
-#define INTERLEAVE
+#define INTERLEAVE 16
 
 Rasterizer::Rasterizer()
 {
@@ -27,6 +27,7 @@ Rasterizer::Rasterizer()
 	this->vao_raydata = 0;
 
 	this->frame_toggle = 0;
+	this->frame_interleave = 0;
 	this->pbo_positions[0] = 0;
 	this->pbo_normals[0] = 0;
 
@@ -497,18 +498,20 @@ void Rasterizer::getRayTraceData(int *count, Eigen::Vector3f **positions, Eigen:
 
 	int line_number = 0;
 	for (int i = 0; i < this->prepass_width * this->prepass_height; i++) {
+#ifdef INTERLEAVE
+			if (i%INTERLEAVE != this->frame_interleave) {
+				continue;
+			}
+#endif
 		if (this->prepass_color0_buffer[i*4 +3] > 0.0f) {
 			frag_idx.push_back(i);
 		}
+	}
 
 #ifdef INTERLEAVE
-		if (i%this->prepass_width == 0) {
-			line_number++;
-			if (line_number%2 ==  this->frame_toggle)
-				i += this->prepass_width;
-		}
+	if (++this->frame_interleave == INTERLEAVE)
+		this->frame_interleave = 0;
 #endif
-	}
 
 	*count = frag_idx.size();
 	*positions = this->position_transfer_buffer;
@@ -605,8 +608,10 @@ void Rasterizer::initRayDataPass()
 
 void Rasterizer::drawRayData(Ray *results, ResultOffset *result_offsets, int result_count, int material_count)
 {
+	bool first_pass = false;
 	if (!this->vao_raydata) {
 		this->initRayDataPass();
+		first_pass = true;
 	}
 
 	glBindFramebuffer(GL_FRAMEBUFFER, this->fbo_raypass);
@@ -614,8 +619,9 @@ void Rasterizer::drawRayData(Ray *results, ResultOffset *result_offsets, int res
 	glViewport(0, 0, this->prepass_width, this->prepass_height);
 	glBindVertexArray(this->vao_raydata);
 
-	glClearColor(0.0, 1.0, 1.0, 1.0);
-//	glClear(GL_COLOR_BUFFER_BIT);
+	glClearColor(1.0, 1.0, 1.0, 1.0);
+	if (first_pass)
+		glClear(GL_COLOR_BUFFER_BIT);
 	glDisable(GL_DEPTH_TEST);
 	glUseProgram(this->shader_programs["MESH"]);
 
