@@ -59,6 +59,7 @@ public:
 	Eigen::Vector3f* verts;
 	Eigen::Vector3f* normals;
 	Eigen::Vector2f* texcoords;
+	Eigen::Matrix4f model_mat;
 	unsigned int num_faces;
 	Face* faces;
 	Material *material;

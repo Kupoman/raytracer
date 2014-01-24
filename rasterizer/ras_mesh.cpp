@@ -14,6 +14,8 @@ RasMesh::RasMesh(Mesh *mesh)
 
 	glGenBuffers(2, this->buffers);
 
+	this->mesh = mesh;
+
 	this->verts = new RasVertex[mesh->num_verts];
 	this->indices = new unsigned short[mesh->num_faces * 3];
 
@@ -64,6 +66,11 @@ RasMesh::~RasMesh()
 
 	delete [] this->verts;
 	delete [] this->indices;
+}
+
+Eigen::Matrix4f RasMesh::getModelMat()
+{
+	return this->mesh->model_mat;
 }
 
 Material* RasMesh::getMaterial()

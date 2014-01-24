@@ -9,11 +9,15 @@ private:
 	unsigned short *indices;
 	int index_count;
 
+	class Mesh* mesh;
+
 	unsigned int vao;
 	unsigned int buffers[2];  // 0 Vertex, 1 Index
 public:
 	RasMesh(class Mesh* mesh);
 	~RasMesh();
+
+	Eigen::Matrix4f getModelMat();
 
 	// Material Access
 	struct Material* getMaterial();

@@ -32,6 +32,15 @@ static Eigen::Vector3f _convertColor(aiColor3D color)
 	return vec;
 }
 
+static Eigen::Matrix4f _convertMatrix(aiMatrix4x4 amat)
+{
+	Eigen::Matrix4f mat;
+	for (unsigned int i = 0; i < 4; i++)
+		for (unsigned int j = 0; j < 4; j++)
+			mat(i, j) = amat[i][j];
+	return mat;
+}
+
 static void _traverseNodes(aiNode* node, const aiScene* ascene, Scene* scene)
 {
 //	fprintf(stderr, "%s\n", node->mName.C_Str());
@@ -47,12 +56,11 @@ static void _traverseNodes(aiNode* node, const aiScene* ascene, Scene* scene)
 		mesh->normals = new Eigen::Vector3f[mesh->num_verts];
 		mesh->texcoords = new Eigen::Vector2f[mesh->num_verts];
 		mesh->faces = new Face[mesh->num_faces];
-		aiMatrix4x4 normal_mat = aiMatrix4x4(node->mTransformation);
-		normal_mat.Inverse().Transpose();
+		mesh->model_mat = _convertMatrix(node->mTransformation);
 		Eigen::Vector3f temp_texcoord = Eigen::Vector3f();
 		for (unsigned int j = 0; j < mesh->num_verts; ++j) {
-			mesh->verts[j] = _convertVector(node->mTransformation * amesh->mVertices[j]);
-			mesh->normals[j] = _convertVector(normal_mat * amesh->mNormals[j]);
+			mesh->verts[j] = _convertVector(amesh->mVertices[j]);
+			mesh->normals[j] = _convertVector(amesh->mNormals[j]);
 			if (amesh->HasTextureCoords(0))
 				temp_texcoord = _convertVector(amesh->mTextureCoords[0][j]);
 			mesh->texcoords[j] = Eigen::Vector2f(temp_texcoord(0), temp_texcoord(1));

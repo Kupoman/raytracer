@@ -418,6 +418,13 @@ static void _test_aabb_intersection()
 	}
 }
 
+static Eigen::Vector3f _transform_vec3(Eigen::Matrix4f trans, Eigen::Vector3f vec)
+{
+	Eigen::Vector4f vec4 = Eigen::Vector4f(vec(0), vec(1), vec(2), 1.0);
+	vec4 = trans * vec4;
+	return Eigen::Vector3f(vec4(0), vec4(1), vec4(2));
+}
+
 void RayTracer::processRays(const Camera& camera, int count, Eigen::Vector3f *positions, Eigen::Vector3f *normals, Ray **results, ResultOffset **result_offsets, int *out_result_count, int *out_material_count)
 {
 	Eigen::Vector3f direction;
@@ -453,16 +460,19 @@ void RayTracer::processRays(const Camera& camera, int count, Eigen::Vector3f *po
 	Tri tri;
 	DACTri dtri;
 	Eigen::Vector3f min_bounds, max_bounds;
+	Eigen::Matrix4f transform, norm_mat;
 	min_bounds = max_bounds = this->meshes[0]->verts[0];
 	for (unsigned int i = 0; i < this->meshes.size(); i++) {
 		mesh = this->meshes[i];
+		transform = mesh->model_mat;
+		norm_mat = transform.inverse().transpose();
 		for (unsigned int j = 0; j < mesh->num_faces; j++) {
-			tri.v0 = mesh->verts[mesh->faces[j].v[0]];
-			tri.v1 = mesh->verts[mesh->faces[j].v[1]];
-			tri.v2 = mesh->verts[mesh->faces[j].v[2]];
-			tri.n0 = mesh->normals[mesh->faces[j].v[0]];
-			tri.n1 = mesh->normals[mesh->faces[j].v[1]];
-			tri.n2 = mesh->normals[mesh->faces[j].v[2]];
+			tri.v0 = _transform_vec3(transform, mesh->verts[mesh->faces[j].v[0]]);
+			tri.v1 = _transform_vec3(transform, mesh->verts[mesh->faces[j].v[1]]);
+			tri.v2 = _transform_vec3(transform, mesh->verts[mesh->faces[j].v[2]]);
+			tri.n0 = _transform_vec3(norm_mat, mesh->normals[mesh->faces[j].v[0]]);
+			tri.n1 = _transform_vec3(norm_mat, mesh->normals[mesh->faces[j].v[1]]);
+			tri.n2 = _transform_vec3(norm_mat, mesh->normals[mesh->faces[j].v[2]]);
 			tri.t0 = mesh->texcoords[mesh->faces[j].v[0]];
 			tri.t1 = mesh->texcoords[mesh->faces[j].v[1]];
 			tri.t2 = mesh->texcoords[mesh->faces[j].v[2]];

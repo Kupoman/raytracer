@@ -248,6 +248,9 @@ void Rasterizer::drawMeshes()
 	int loc = glGetUniformLocation(this->shader_programs["MESH"], "proj_mat");
 	glUniformMatrix4fv(loc, 1, GL_FALSE, &this->proj_mat[0][0]);
 
+	loc = glGetUniformLocation(this->shader_programs["MESH"], "transform_draw");
+	glUniform1i(loc, 1);
+
 	loc = glGetUniformLocation(this->shader_programs["MESH"], "frame_size");
 	glUniform2f(loc, this->frame_width, this->frame_height);
 
@@ -266,6 +269,10 @@ void Rasterizer::drawMeshes()
 	RasMesh *mesh;
 	for (unsigned int i=0; i < this->meshes.size(); i++) {
 		mesh = this->meshes[i];
+
+		loc = glGetUniformLocation(this->shader_programs["MESH"], "model_mat");
+		glUniformMatrix4fv(loc, 1, GL_FALSE, &mesh->getModelMat()(0, 0));
+
 		this->bindMaterial(mesh->getMaterial(), this->shader_programs["MESH"]);
 		this->meshes[i]->draw();
 	}
@@ -341,6 +348,9 @@ void Rasterizer::drawPrepass()
 		mesh = this->meshes[i];
 		loc = glGetUniformLocation(this->shader_programs["PREPASS"], "isReflective");
 		glUniform1i(loc, mesh->getMaterialIsReflective());
+
+		loc = glGetUniformLocation(this->shader_programs["PREPASS"], "model_mat");
+		glUniformMatrix4fv(loc, 1, GL_FALSE, &mesh->getModelMat()(0,0));
 
 		mesh->draw();
 	}
@@ -632,6 +642,9 @@ void Rasterizer::drawRayData(Ray *results, ResultOffset *result_offsets, int res
 
 	loc = glGetUniformLocation(this->shader_programs["MESH"], "frame_size");
 	glUniform2f(loc, this->prepass_width, this->prepass_height);
+
+	loc = glGetUniformLocation(this->shader_programs["MESH"], "transform_draw");
+	glUniform1i(loc, 0);
 
 	this->bindLights(this->shader_programs["MESH"]);
 
