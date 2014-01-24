@@ -48,7 +48,7 @@ private:
 	Material* default_mat;
 
 	unsigned char frame_toggle;
-	unsigned char frame_interleave;
+	unsigned char frame_interlace;
 	unsigned int pbo_positions[2];
 	unsigned int pbo_normals[2];
 	Eigen::Vector3f *position_transfer_buffer;

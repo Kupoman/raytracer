@@ -13,7 +13,7 @@
 #include "ras_vertex.h"
 
 #define USE_PBOS
-#define INTERLEAVE 16
+#define INTERLACE 16
 
 Rasterizer::Rasterizer()
 {
@@ -27,7 +27,7 @@ Rasterizer::Rasterizer()
 	this->vao_raydata = 0;
 
 	this->frame_toggle = 0;
-	this->frame_interleave = 0;
+	this->frame_interlace = 0;
 	this->pbo_positions[0] = 0;
 	this->pbo_normals[0] = 0;
 
@@ -498,8 +498,8 @@ void Rasterizer::getRayTraceData(int *count, Eigen::Vector3f **positions, Eigen:
 
 	int line_number = 0;
 	for (int i = 0; i < this->prepass_width * this->prepass_height; i++) {
-#ifdef INTERLEAVE
-			if (i%INTERLEAVE != this->frame_interleave) {
+#ifdef INTERLACE
+			if (i%INTERLACE != this->frame_interlace) {
 				continue;
 			}
 #endif
@@ -508,9 +508,9 @@ void Rasterizer::getRayTraceData(int *count, Eigen::Vector3f **positions, Eigen:
 		}
 	}
 
-#ifdef INTERLEAVE
-	if (++this->frame_interleave == INTERLEAVE)
-		this->frame_interleave = 0;
+#ifdef INTERLACE
+	if (++this->frame_interlace == INTERLACE)
+		this->frame_interlace = 0;
 #endif
 
 	*count = frag_idx.size();
