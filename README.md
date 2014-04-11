@@ -1,4 +1,4 @@
-raytracer
+G-Buffer Ray Tracer
 =========
 
-Personal Ray Tracing project.
+G-Buffer Ray Tracing thesis work.
